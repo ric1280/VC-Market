@@ -26,7 +26,7 @@ compute <- function(mainexpression, userEnvironment=parent.frame(), mode="live" 
 
 compute({ 
 			
-			"fibvals <- numeric(100)
+			"fibvals <- numeric(10)
 			fibvals[1] <- 1
 			fibvals[2] <- 1
 			for (i in 3:length(fibvals)) { 
