@@ -16,4 +16,4 @@ login("Test@gmail.com", "pw")
 addMachine("Machine1", 500000000, 100000, 2048, 5)
 getMachine()
 
-startVolunteer("caipirinha")
+startVolunteer("Machine1")

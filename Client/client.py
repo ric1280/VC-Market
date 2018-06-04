@@ -81,6 +81,7 @@ def submitJob(session_id, price, deadline, credibility, availability, disc, RAM,
     if session_id:
         print "Volunteers list for the job: "
         volunteers = s.submitJob(session_id, price, deadline, credibility, availability, disc, RAM)
+        print volunteers
         
         if volunteers:
             chosen_one = volunteers[0]
@@ -90,9 +91,14 @@ def submitJob(session_id, price, deadline, credibility, availability, disc, RAM,
             
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             
-            vol_conn.compute(RExpression)
-        
-        return volunteers
+            RData_file = vol_conn.compute(RExpression)
+            handle = open("output.RData", "w")
+            handle.write(RData_file.data)
+            handle.close()
+            return "Job executed successfully"
+            
+        else:
+            return "No volunteers available to execute the job"
     else:
         return "Login first"
 

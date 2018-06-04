@@ -56,6 +56,11 @@ startVolunteer <- function(machineName)
 
 submitJob <- function(price, deadline, credibility, availability, disc, RAM, RExpression) 
 {
-	python.call("submitJob", client_session_id, price, deadline, credibility, availability, disc, RAM, RExpression)
+	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, availability, disc, RAM, RExpression)
+	if(returning_msg == "Job executed successfully"){
+		load('output.RData')
+		ls()
+		fibvals
+	}
 }
 

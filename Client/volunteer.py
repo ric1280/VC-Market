@@ -8,6 +8,7 @@ import sys
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
+import pyRserve
 #import rpy2.robjects as robjects
 #import rpy2.robjects.packages as rpackages
 #from rpy2.robjects.vectors import StrVector
@@ -39,8 +40,17 @@ print(client_conn.startVolunteer(sys.argv[2], listenner_port, sys.argv[1]))
 
 def compute(RExpression):
     print("RExpression to compute:" + str(RExpression))
+    conn = pyRserve.connect()
+    print conn.eval(str(RExpression))
     
+    print conn.eval('save.image("output.RData")')
+
+    path = conn.eval('getwd()')
+
+    with open(str(path)+"/output.RData", "rb") as handle:
+        binary_data = xmlrpclib.Binary(handle.read())
  
+    return binary_data
     
 server.register_function(compute, 'compute')
 
