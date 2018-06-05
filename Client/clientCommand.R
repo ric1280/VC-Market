@@ -20,6 +20,10 @@ python.load("../Client/client.py")
 ### startVolunteer(machineName)
 ### submitJobs(price, deadline, credibility, availability, disc, RAM)
 #######################################################################
+
+## store call environment in variable
+call_env <- environment()
+
 client_session_id <- "NULL"
 
 getUsers <- function() 
@@ -58,9 +62,10 @@ submitJob <- function(price, deadline, credibility, availability, disc, RAM, REx
 {
 	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, availability, disc, RAM, RExpression)
 	if(returning_msg == "Job executed successfully"){
-		load('output.RData')
-		ls()
-		fibvals
+		load('output.RData', envir=call_env)
+		symbol_list<-ls()
+		print(symbol_list)
+		print(fibvals)
 	}
 }
 

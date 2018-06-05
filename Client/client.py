@@ -127,3 +127,4 @@ def submitJob(session_id, price, deadline, credibility, availability, disc, RAM,
 
 # Print list of available methods
 #print(s.system.listMethods())
+
