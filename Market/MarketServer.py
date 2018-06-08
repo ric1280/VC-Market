@@ -17,7 +17,7 @@ import sys
 import clientAuth
 import volunteerAuth
 
-print(str(socket.gethostbyname(socket.getfqdn())))
+#print(str(socket.gethostbyname(socket.getfqdn())))
 
 jobBuffer = dict()
 
@@ -234,6 +234,20 @@ def submitJob(client_ip, session_id, price, deadline, credibility, availability,
    
     
 server.register_function(submitJob, 'submitJob')
+
+
+@clientAuth.require_login
+def chooseVolunteer(client_ip, session_id, volunteer):
+    
+    quiz = """\n collatz <- function(n, acc=0) {
+    if(n==1) return(acc);
+    collatz(ifelse(n%%2==0, n/2, 3*n +1), acc+1)} 
+    
+    quiz<-collatz(27)"""
+    
+    return quiz
+    
+server.register_function(chooseVolunteer, 'chooseVolunteer')    
 
 @clientAuth.require_login
 def checkVolunteer(client_ip, session_id, machineName):

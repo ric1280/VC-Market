@@ -42,9 +42,9 @@ def compute(RExpression):
     print("RExpression to compute:" + str(RExpression))
     conn = pyRserve.connect()
     print conn.eval(str(RExpression))
-    
+    print("Expression computed")
     print conn.eval('save.image("output.RData")')
-
+    print("output.RData produced")
     path = conn.eval('getwd()')
 
     with open(str(path)+"/output.RData", "rb") as handle:

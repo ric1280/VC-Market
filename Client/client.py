@@ -85,6 +85,12 @@ def submitJob(session_id, price, deadline, credibility, availability, disc, RAM,
         
         if volunteers:
             chosen_one = volunteers[0]
+            quiz = s.chooseVolunteer(session_id, chosen_one)
+            
+            ###Join quiz on expression
+            RExpression = RExpression + quiz
+            
+            
             
             vol_ip = chosen_one["ip"]
             vol_port = chosen_one["port"]
