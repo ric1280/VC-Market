@@ -98,9 +98,11 @@ def submitJob(session_id, price, deadline, credibility, availability, disc, RAM,
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             
             RData_file = vol_conn.compute(RExpression)
-            handle = open("output.RData", "w")
+            handle = open("output.RData", "wb")
             handle.write(RData_file.data)
             handle.close()
+            
+            vol_conn.__close()
             return "Job executed successfully"
             
         else:

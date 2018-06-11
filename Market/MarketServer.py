@@ -16,12 +16,13 @@ import sys
 
 import clientAuth
 import volunteerAuth
+import threading
 
 #print(str(socket.gethostbyname(socket.getfqdn())))
 
 jobBuffer = dict()
 
-
+print "Strarting MarketServer"
 
 try:
     con = mdb.connect('localhost', 'user', '1234', 'vcsystem');
@@ -33,9 +34,9 @@ try:
     ver = cur.fetchone()
     print ("Database version : %s " % ver)
     
-except mdb.Error:
+except mdb.Error as e:
   
-    #print ("Error %d: %s" % (e.args[0],e.args[1]))
+    print ("Error %d: %s" % (e.args[0],e.args[1]))
     sys.exit(1)
 
 
@@ -240,10 +241,12 @@ server.register_function(submitJob, 'submitJob')
 def chooseVolunteer(client_ip, session_id, volunteer):
     
     quiz = """\n collatz <- function(n, acc=0) {
-    if(n==1) return(acc);
-    collatz(ifelse(n%%2==0, n/2, 3*n +1), acc+1)} 
-    
-    quiz<-collatz(27)"""
+                if(n==1) return(acc);
+                collatz(ifelse(n%%2==0, n/2, 3*n +1), acc+1)
+                }
+                
+                quiz<-collatz(27)
+               """
     
     return quiz
     
@@ -316,5 +319,29 @@ def startVolunteer(client_ip, session_id, port, machineName):
     return vol_session_id
 
 server.register_function(startVolunteer, 'startVolunteer')
+
+
+def healthCheck():
+    threading.Timer(30.0, healthCheck).start()
+    print "Health-Checking Volunteers..."
+    for session_id in volunteerAuth.volunteer_sessions.keys():
+        vol_address = 'http://'+volunteerAuth.volunteer_sessions[session_id]["ip"]+':'+str(volunteerAuth.volunteer_sessions[session_id]["port"])
+        print vol_address
+        
+        try:
+            vol_conn = xmlrpclib.ServerProxy(vol_address)
+            hc = vol_conn.healthCheck()
+            
+            if(hc == "ok"):
+                volunteerAuth.health_check_request_pass(volunteerAuth.volunteer_sessions[session_id]["session_id"])
+                print "volunteer " + volunteerAuth.volunteer_sessions[session_id]["Name"] + "passed health-check successfully!"
+        
+        except:
+            volunteerAuth.health_check_request_fail(volunteerAuth.volunteer_sessions[session_id]["session_id"])
+        
+        
+    
+  
+healthCheck()
 
 server.serve_forever()

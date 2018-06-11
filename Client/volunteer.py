@@ -41,6 +41,7 @@ print(client_conn.startVolunteer(sys.argv[2], listenner_port, sys.argv[1]))
 def compute(RExpression):
     print("RExpression to compute:" + str(RExpression))
     conn = pyRserve.connect()
+    conn.eval("rm(list=ls())")
     print conn.eval(str(RExpression))
     print("Expression computed")
     print conn.eval('save.image("output.RData")')
@@ -55,5 +56,8 @@ def compute(RExpression):
 server.register_function(compute, 'compute')
 
 
+def healthCheck():
+    return "ok"
+server.register_function(healthCheck, 'healthCheck')
 
 server.serve_forever()

@@ -77,7 +77,7 @@ def require_login(decorated_function):
 
         # check if timestamp is valid
         if is_timestamp_expired(last_visit):
-            clear_expired_sessions() # clean the session dict
+            invalidate_session_id(session_id) # clean the session dict
             return 'Session ID invalid", "Call login(email, pass) to aquire a valid session'
 
         sessions[session_id]["last_visit"] = get_timestamp()

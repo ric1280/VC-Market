@@ -36,7 +36,7 @@ compute({
 			for (i in 3:length(fibvals)) { 
 				fibvals[i] <- fibvals[i-1]+fibvals[i-2]
 			} 
-			fibvals"
+			"
 		})
 
 
