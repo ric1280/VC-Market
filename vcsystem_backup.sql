@@ -1,13 +1,13 @@
--- MySQL dump 10.13  Distrib 5.5.60, for debian-linux-gnu (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.11, for Win64 (x86_64)
 --
 -- Host: localhost    Database: vcsystem
 -- ------------------------------------------------------
--- Server version	5.5.60-0ubuntu0.14.04.1
+-- Server version	8.0.11
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
+ SET NAMES utf8mb4 ;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -16,13 +16,64 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `Machines`
+-- Table structure for table `client_job`
 --
 
-DROP TABLE IF EXISTS `Machines`;
+DROP TABLE IF EXISTS `client_job`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `Machines` (
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `client_job` (
+  `Email` varchar(255) NOT NULL,
+  `jobId` int(11) NOT NULL,
+  PRIMARY KEY (`Email`,`jobId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `client_job`
+--
+
+LOCK TABLES `client_job` WRITE;
+/*!40000 ALTER TABLE `client_job` DISABLE KEYS */;
+/*!40000 ALTER TABLE `client_job` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `job`
+--
+
+DROP TABLE IF EXISTS `job`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `job` (
+  `jobId` int(11) NOT NULL,
+  `credibility` float(4,4) DEFAULT NULL,
+  `CPU` int(11) DEFAULT NULL,
+  `Disc` int(11) DEFAULT NULL,
+  `RAM` int(11) DEFAULT NULL,
+  `ExecTime` int(11) DEFAULT NULL,
+  `Status` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`jobId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `job`
+--
+
+LOCK TABLES `job` WRITE;
+/*!40000 ALTER TABLE `job` DISABLE KEYS */;
+/*!40000 ALTER TABLE `job` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `machines`
+--
+
+DROP TABLE IF EXISTS `machines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `machines` (
   `mid` int(11) NOT NULL,
   `Name` varchar(255) DEFAULT NULL,
   `CPU` int(11) DEFAULT NULL,
@@ -34,50 +85,50 @@ CREATE TABLE `Machines` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `Machines`
+-- Dumping data for table `machines`
 --
 
-LOCK TABLES `Machines` WRITE;
-/*!40000 ALTER TABLE `Machines` DISABLE KEYS */;
-INSERT INTO `Machines` VALUES (1,'caipirinha',500000000,10240,2048,5),(2,'Machine1',500000000,100000,2048,5);
-/*!40000 ALTER TABLE `Machines` ENABLE KEYS */;
+LOCK TABLES `machines` WRITE;
+/*!40000 ALTER TABLE `machines` DISABLE KEYS */;
+INSERT INTO `machines` VALUES (1,'caipirinha',500000000,10240,2048,5),(2,'Machine1',500000000,100000,2048,5);
+/*!40000 ALTER TABLE `machines` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
--- Table structure for table `UserMachines`
+-- Table structure for table `usermachines`
 --
 
-DROP TABLE IF EXISTS `UserMachines`;
+DROP TABLE IF EXISTS `usermachines`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `UserMachines` (
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `usermachines` (
   `Email` varchar(255) NOT NULL,
   `mid` int(11) NOT NULL,
   KEY `Email` (`Email`),
   KEY `mid` (`mid`),
-  CONSTRAINT `UserMachines_ibfk_1` FOREIGN KEY (`Email`) REFERENCES `Users` (`Email`),
-  CONSTRAINT `UserMachines_ibfk_2` FOREIGN KEY (`mid`) REFERENCES `Machines` (`mid`)
+  CONSTRAINT `UserMachines_ibfk_1` FOREIGN KEY (`Email`) REFERENCES `users` (`email`),
+  CONSTRAINT `UserMachines_ibfk_2` FOREIGN KEY (`mid`) REFERENCES `machines` (`mid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `UserMachines`
+-- Dumping data for table `usermachines`
 --
 
-LOCK TABLES `UserMachines` WRITE;
-/*!40000 ALTER TABLE `UserMachines` DISABLE KEYS */;
-INSERT INTO `UserMachines` VALUES ('Test@gmail.com',1),('Test@gmail.com',2);
-/*!40000 ALTER TABLE `UserMachines` ENABLE KEYS */;
+LOCK TABLES `usermachines` WRITE;
+/*!40000 ALTER TABLE `usermachines` DISABLE KEYS */;
+INSERT INTO `usermachines` VALUES ('Test@gmail.com',1),('Test@gmail.com',2);
+/*!40000 ALTER TABLE `usermachines` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
--- Table structure for table `Users`
+-- Table structure for table `users`
 --
 
-DROP TABLE IF EXISTS `Users`;
+DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `Users` (
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `users` (
   `Email` varchar(255) NOT NULL,
   `Password` varchar(255) NOT NULL,
   `Credits` int(11) DEFAULT NULL,
@@ -86,13 +137,13 @@ CREATE TABLE `Users` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `Users`
+-- Dumping data for table `users`
 --
 
-LOCK TABLES `Users` WRITE;
-/*!40000 ALTER TABLE `Users` DISABLE KEYS */;
-INSERT INTO `Users` VALUES ('Test@gmail.com','pw',500);
-/*!40000 ALTER TABLE `Users` ENABLE KEYS */;
+LOCK TABLES `users` WRITE;
+/*!40000 ALTER TABLE `users` DISABLE KEYS */;
+INSERT INTO `users` VALUES ('Test@gmail.com','pw',500);
+/*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -104,4 +155,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-05-24 13:43:44
+-- Dump completed on 2018-06-19 19:44:36

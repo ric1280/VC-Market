@@ -51,6 +51,8 @@ def compute(RExpression):
     with open(str(path)+"/output.RData", "rb") as handle:
         binary_data = xmlrpclib.Binary(handle.read())
  
+    
+    
     return binary_data
     
 server.register_function(compute, 'compute')
