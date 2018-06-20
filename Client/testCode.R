@@ -17,7 +17,7 @@ compute <- function(mainexpression, userEnvironment=parent.frame(), mode="live" 
 	
 	ls()
 	
-	returnValue <- submitJob(6, 2700, "NULL", "NULL", 4096, 1024, mainexpression)
+	returnValue <- submitJob(6, 2700, 0.6544, 300000000, 4096, 1024, mainexpression)
 
 	return(returnValue)
 }

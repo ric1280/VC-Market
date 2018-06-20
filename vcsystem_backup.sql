@@ -25,8 +25,11 @@ DROP TABLE IF EXISTS `client_job`;
 CREATE TABLE `client_job` (
   `Email` varchar(255) NOT NULL,
   `jobId` int(11) NOT NULL,
-  PRIMARY KEY (`Email`,`jobId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  PRIMARY KEY (`Email`,`jobId`),
+  KEY `jobId` (`jobId`),
+  CONSTRAINT `client_job_ibfk_1` FOREIGN KEY (`jobId`) REFERENCES `job` (`jobid`),
+  CONSTRAINT `client_job_ibfk_2` FOREIGN KEY (`Email`) REFERENCES `users` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -35,6 +38,7 @@ CREATE TABLE `client_job` (
 
 LOCK TABLES `client_job` WRITE;
 /*!40000 ALTER TABLE `client_job` DISABLE KEYS */;
+INSERT INTO `client_job` VALUES ('Test@gmail.com',1);
 /*!40000 ALTER TABLE `client_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -63,7 +67,35 @@ CREATE TABLE `job` (
 
 LOCK TABLES `job` WRITE;
 /*!40000 ALTER TABLE `job` DISABLE KEYS */;
+INSERT INTO `job` VALUES (1,0.6544,300000000,4096,1024,0,'NULL');
 /*!40000 ALTER TABLE `job` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `machine_job`
+--
+
+DROP TABLE IF EXISTS `machine_job`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `machine_job` (
+  `mid` int(11) NOT NULL,
+  `jobId` int(11) NOT NULL,
+  `status` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`mid`,`jobId`),
+  KEY `jobId` (`jobId`),
+  CONSTRAINT `machine_job_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `machines` (`mid`),
+  CONSTRAINT `machine_job_ibfk_2` FOREIGN KEY (`jobId`) REFERENCES `job` (`jobid`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `machine_job`
+--
+
+LOCK TABLES `machine_job` WRITE;
+/*!40000 ALTER TABLE `machine_job` DISABLE KEYS */;
+/*!40000 ALTER TABLE `machine_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -155,4 +187,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-06-19 19:44:36
+-- Dump completed on 2018-06-20 16:18:03

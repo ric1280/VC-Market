@@ -77,10 +77,10 @@ def startVolunteer(session_id,machineName):
 
 #startVolunteer("caipirinha")
 #s.submitJob(session_id, 6, 2700, "NULL", "NULL", 4096, 1024)
-def submitJob(session_id, price, deadline, credibility, availability, disc, RAM, RExpression):
+def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression):
     if session_id:
         print "Volunteers list for the job: "
-        volunteers = s.submitJob(session_id, price, deadline, credibility, availability, disc, RAM)
+        volunteers = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM)
         print volunteers
         
         if volunteers:
@@ -98,11 +98,12 @@ def submitJob(session_id, price, deadline, credibility, availability, disc, RAM,
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             
             RData_file = vol_conn.compute(RExpression)
+            
             handle = open("output.RData", "wb")
+        
             handle.write(RData_file.data)
             handle.close()
             
-            vol_conn.__close()
             return "Job executed successfully"
             
         else:

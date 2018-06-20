@@ -166,48 +166,43 @@ def getMachine(client_ip, session_id):
 server.register_function(getMachine, 'getMachine')
 
 @clientAuth.require_login
-def submitJob(client_ip, session_id, price, deadline, credibility, availability, disc, RAM):
-    #try:
-    #    cur.execute("""INSERT INTO Jobs(Price, Deadline, Credibility, Availability, Disc, RAM) VALUES (%s, %s, %s, %s, %s, %s)""", (price, deadline, credibility, availability, disc, RAM))
-    #    con.commit()
-    #except: 
-    #    con.rollback()
+def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM):
     
-    
-    
+    jobId=1
+    try:
+        cur.execute("""SELECT COUNT(jobId) FROM job""")
+        jobId = int(cur.fetchone()[0]) + 1
         
+    except:
+        return "Wrong sql query: SELECT COUNT(jobId) FROM job!"    
+    
+    try:
+        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status) VALUES (%s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL"))
+        con.commit()
+    except: 
+        print "Could not insert job data into DB"
+        con.rollback()
+    
+    
+    try:
+        cur.execute("""INSERT INTO client_job(Email, jobId) VALUES (%s ,%s)""", (clientAuth.sessions[session_id]['email'], jobId))
+        con.commit()
+    except: 
+        con.rollback()
+        
+        
+      
     #Job owner's email
     Email = clientAuth.session_to_email(session_id)
     
     jobBuffer[Email] = {"price"  : price,
                         "deadline": deadline,
                         "credibility": credibility,
-                        "availability": availability,
+                        "CPU": CPU,
                         "disc": disc,
                         "RAM": RAM}
     
-    #query = "Select Name from Machines where "
     
-    #if price != "NULL":
-    #    query += """Price<='%s'""" % price
-        
-    #if disc != "NULL": 
-    #    query += """AND Disc>='%s'""" % disc
-        
-    #if RAM != "NULL": 
-    #    query += """AND RAM>='%s'""" % RAM
-        
-        
-    #print(query)
-    
-    #try:
-    #    cur.execute(query)
-    #    VMachines = cur.fetchall()
-        
-        
-    #except:
-    #    return "There are no registered volunteer machines that qualifies for the job!"
-        
     job_candidates = []
     if volunteerAuth.volunteer_sessions:
         for session in volunteerAuth.volunteer_sessions:
@@ -221,6 +216,10 @@ def submitJob(client_ip, session_id, price, deadline, credibility, availability,
                     continue
             if RAM != "NULL":
                 if machine['RAM'] < RAM:
+                    continue
+                
+            if CPU != "NULL":
+                if machine['CPU'] < CPU:
                     continue
                 
             job_candidates.append({"Name"  : machine["Name"],
