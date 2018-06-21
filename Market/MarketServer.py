@@ -21,6 +21,7 @@ import threading
 from Client.client import session_id
 
 import pyRserve
+import time
 
 #print(str(socket.gethostbyname(socket.getfqdn())))
 
@@ -181,7 +182,8 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
         return "Wrong sql query: SELECT COUNT(jobId) FROM job!"    
     
     try:
-        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline))
+        initTime = time.time()
+        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline, InitTime) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline, initTime))
         con.commit()
     
     except: 
@@ -419,6 +421,25 @@ def checkJobResult(client_ip, jobId, RData_file):
             print "Could not execute query: "+ query
             con.rollback()
     
+    
+        try:
+            query = """SELECT InitTime FROM job WHERE jobId= """+str(jobId)
+            cur.execute(query)
+            initTime = cur.fetchone()[0]
+            
+        except:
+            print "error with query: "+query
+    
+        try:
+            execTime = time.time() - initTime        
+            query = "UPDATE job SET ExecTime = "+ str(execTime)+" WHERE jobId = "+ str(jobId)
+            cur.execute(query)
+            con.commit()
+        
+        except: 
+            print "Could not execute query: "+ query
+            con.rollback()
+        
     
     conn.close()
     if conn.isClosed:

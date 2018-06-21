@@ -38,7 +38,7 @@ CREATE TABLE `client_job` (
 
 LOCK TABLES `client_job` WRITE;
 /*!40000 ALTER TABLE `client_job` DISABLE KEYS */;
-INSERT INTO `client_job` VALUES ('Test@gmail.com',1);
+INSERT INTO `client_job` VALUES ('Test@gmail.com',1),('Test@gmail.com',2),('Test@gmail.com',3),('Test@gmail.com',4),('Test@gmail.com',5),('Test@gmail.com',6);
 /*!40000 ALTER TABLE `client_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -55,10 +55,11 @@ CREATE TABLE `job` (
   `CPU` int(11) DEFAULT NULL,
   `Disc` int(11) DEFAULT NULL,
   `RAM` int(11) DEFAULT NULL,
-  `ExecTime` int(11) DEFAULT NULL,
+  `ExecTime` double DEFAULT NULL,
   `Status` varchar(255) DEFAULT NULL,
   `Price` int(11) DEFAULT NULL,
   `Deadline` int(11) DEFAULT NULL,
+  `InitTime` double DEFAULT NULL,
   PRIMARY KEY (`jobId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -69,7 +70,7 @@ CREATE TABLE `job` (
 
 LOCK TABLES `job` WRITE;
 /*!40000 ALTER TABLE `job` DISABLE KEYS */;
-INSERT INTO `job` VALUES (1,0.6544,300000000,4096,1024,0,'Success',6,2700);
+INSERT INTO `job` VALUES (1,0.6544,300000000,4096,1024,0,'Success',6,2700,NULL),(2,0.6544,300000000,4096,1024,0,'Success',6,2700,1529623808),(3,0.6544,300000000,4096,1024,0,'Success',6,2700,1529623936),(4,0.6544,300000000,4096,1024,0,'Success',6,2700,1529624064),(5,0.6544,300000000,4096,1024,0,'Success',6,2700,1529624320),(6,0.6544,300000000,4096,1024,95.3890001774,'Success',6,2700,1529624863.58);
 /*!40000 ALTER TABLE `job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -97,7 +98,7 @@ CREATE TABLE `machine_job` (
 
 LOCK TABLES `machine_job` WRITE;
 /*!40000 ALTER TABLE `machine_job` DISABLE KEYS */;
-INSERT INTO `machine_job` VALUES (2,1,NULL);
+INSERT INTO `machine_job` VALUES (2,1,NULL),(2,2,NULL),(2,3,NULL),(2,4,NULL),(2,5,NULL),(2,6,NULL);
 /*!40000 ALTER TABLE `machine_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -190,4 +191,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-06-21 18:40:02
+-- Dump completed on 2018-06-22  0:52:03
