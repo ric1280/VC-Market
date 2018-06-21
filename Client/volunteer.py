@@ -26,16 +26,19 @@ print "Volunteer "+ sys.argv[1] + " listenning on port: "+ str(listenner_port)
 
 print(client_conn.startVolunteer(sys.argv[2], listenner_port, sys.argv[1]))
 
-try:
-    conn = pyRserve.connect()
-except:
-    print "RServe not running... execute Rserve"
-    sys.exit(0)
+
 
 #threadBandwidthEstimator = startBW()
-
-def compute(RExpression):
+def compute_job(jobId, RExpression):
     print("RExpression to compute:" + str(RExpression))
+    
+    try:
+        conn = pyRserve.connect()
+    except:
+        print "RServe not running... execute Rserve"
+        return
+    
+    
     
     conn.eval("rm(list=ls())")
     print "R variables cleaned"
@@ -50,9 +53,17 @@ def compute(RExpression):
         binary_data = xmlrpclib.Binary(handle.read())
 
     print "binary_data produced"
-    return binary_data
     
-server.register_function(compute, 'compute')
+    conn.close()
+    if conn.isClosed:
+        print "Rserve connection is closed"
+    
+    client_conn.checkJobResult(jobId, binary_data)
+    
+    
+    return binary_data
+
+server.register_function(compute_job, 'compute_job')
 
 
 def healthCheck():

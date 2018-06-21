@@ -11,6 +11,7 @@ import subprocess
 import time
 import pickle
 from platform import machine
+from _mysql import connection
 
 
 #from OffloadingPredictor.threads import startbandwidthScout
@@ -80,12 +81,18 @@ def startVolunteer(session_id,machineName):
 def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression):
     if session_id:
         print "Volunteers list for the job: "
-        volunteers = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM)
+        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM)
+        
+        volunteers = s.getVolunteersForJob(session_id, jobId)
+        if(volunteers=="error"):
+            return "wrong jobId - you don't have owner permissions to that job"
+        
         print volunteers
+        
         
         if volunteers:
             chosen_one = volunteers[0]
-            quiz = s.chooseVolunteer(session_id, chosen_one)
+            quiz = s.chooseVolunteer(session_id, jobId,chosen_one)
             
             ###Join quiz on expression
             RExpression = RExpression + quiz
@@ -97,7 +104,8 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
             
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             
-            RData_file = vol_conn.compute(RExpression)
+            
+            RData_file = vol_conn.compute_job(jobId, RExpression)
             
             handle = open("output.RData", "wb")
         

@@ -57,6 +57,8 @@ CREATE TABLE `job` (
   `RAM` int(11) DEFAULT NULL,
   `ExecTime` int(11) DEFAULT NULL,
   `Status` varchar(255) DEFAULT NULL,
+  `Price` int(11) DEFAULT NULL,
+  `Deadline` int(11) DEFAULT NULL,
   PRIMARY KEY (`jobId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -67,7 +69,7 @@ CREATE TABLE `job` (
 
 LOCK TABLES `job` WRITE;
 /*!40000 ALTER TABLE `job` DISABLE KEYS */;
-INSERT INTO `job` VALUES (1,0.6544,300000000,4096,1024,0,'NULL');
+INSERT INTO `job` VALUES (1,0.6544,300000000,4096,1024,0,'Success',6,2700);
 /*!40000 ALTER TABLE `job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -95,6 +97,7 @@ CREATE TABLE `machine_job` (
 
 LOCK TABLES `machine_job` WRITE;
 /*!40000 ALTER TABLE `machine_job` DISABLE KEYS */;
+INSERT INTO `machine_job` VALUES (2,1,NULL);
 /*!40000 ALTER TABLE `machine_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -187,4 +190,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-06-20 16:18:03
+-- Dump completed on 2018-06-21 18:40:02
