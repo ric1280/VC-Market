@@ -5,15 +5,15 @@
 
 
 source("clientCommand.R")
-
+source("client_config.R")
 
 #Email - "Test@gmail.com"
 #pw - "pw"
 
 getUsers()
-signup("Test@gmail.com", "pw")
-login("Test@gmail.com", "pw")
-addMachine("Machine1", 500000000, 100000, 2048, 5)
+signup(Email, Password)
+login(Email, Password)
+addMachine(Machine_Name, Machine_CPU, Machine_Hard_Disc, Machine_RAM, Machine_Price)
 getMachine()
 
-startVolunteer("Machine1")
+startVolunteer(Machine_Name)

@@ -5,6 +5,7 @@ Created on May 7, 2018
 '''
 import xmlrpclib
 import sys
+from uptime import uptime
 
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
@@ -24,7 +25,7 @@ server.register_introspection_functions()
 listenner_port = server.server_address[1];
 print "Volunteer "+ sys.argv[1] + " listenning on port: "+ str(listenner_port)
 
-print(client_conn.startVolunteer(sys.argv[2], listenner_port, sys.argv[1]))
+vol_session_id = client_conn.startVolunteer(sys.argv[2], listenner_port, sys.argv[1])
 
 
 
@@ -57,8 +58,9 @@ def compute_job(jobId, RExpression):
     conn.close()
     if conn.isClosed:
         print "Rserve connection is closed"
+   
     
-    client_conn.checkJobResult(jobId, binary_data)
+    client_conn.checkJobResult(jobId, binary_data, vol_session_id)
     
     
     return binary_data
@@ -67,7 +69,9 @@ server.register_function(compute_job, 'compute_job')
 
 
 def healthCheck():
-    return "ok"
+    
+    return uptime()
+
 server.register_function(healthCheck, 'healthCheck')
 
 server.serve_forever()

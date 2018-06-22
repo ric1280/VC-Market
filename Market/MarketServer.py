@@ -264,6 +264,9 @@ def getVolunteersForJob(client_ip, session_id, jobId):
         for session in volunteerAuth.volunteer_sessions:
             machine = volunteerAuth.volunteer_sessions[session]
             
+            if machine['State'] == "BUSY":
+                continue
+            
             if price != "NULL":
                 if machine['Price'] > price:
                     continue
@@ -308,6 +311,14 @@ def chooseVolunteer(client_ip, session_id, jobId, volunteer):
         con.commit()
     except: 
         con.rollback()
+        
+    #update volunteer state to busy
+    if volunteerAuth.volunteer_sessions:
+        for session in volunteerAuth.volunteer_sessions:
+            machine = volunteerAuth.volunteer_sessions[session]
+            
+            if machine["mid"]==volunteer["mid"]:
+                machine["State"] = "BUSY"
     
     quiz = """\n collatz <- function(n, acc=0) {
                 if(n==1) return(acc);
@@ -378,7 +389,8 @@ def startVolunteer(client_ip, session_id, port, machineName):
                                                           "Disc"  : data[1],
                                                           "RAM"  : data[2],
                                                           "Price"  : data[3],
-                                                          "last_visit": volunteerAuth.get_timestamp()}
+                                                          "last_visit": volunteerAuth.get_timestamp(),
+                                                          "State" : "FREE"}
     
     
     else:
@@ -390,7 +402,8 @@ def startVolunteer(client_ip, session_id, port, machineName):
 
 server.register_function(startVolunteer, 'startVolunteer')
 
-def checkJobResult(client_ip, jobId, RData_file):
+
+def checkJobResult(client_ip ,jobId, RData_file, volunteer_session):
     #connect to R
     try:
         conn = pyRserve.connect()
@@ -445,6 +458,11 @@ def checkJobResult(client_ip, jobId, RData_file):
     if conn.isClosed:
         print "Rserve connection is closed"
         
+    
+    
+    #update volunteer state to FREE
+    volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
+     
     try:
         os.remove(filename)
     except OSError:
@@ -464,9 +482,9 @@ def healthCheck():
             vol_conn = xmlrpclib.ServerProxy(vol_address)
             hc = vol_conn.healthCheck()
             
-            if(hc == "ok"):
+            if(hc):
                 volunteerAuth.health_check_request_pass(volunteerAuth.volunteer_sessions[session_id]["session_id"])
-                print "volunteer " + volunteerAuth.volunteer_sessions[session_id]["Name"] + "passed health-check successfully!"
+                print "volunteer " + volunteerAuth.volunteer_sessions[session_id]["Name"] + "passed health-check successfully! - uptime -> "+str(hc)
         
         except:
             volunteerAuth.health_check_request_fail(volunteerAuth.volunteer_sessions[session_id]["session_id"])

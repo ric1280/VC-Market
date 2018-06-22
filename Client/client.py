@@ -95,17 +95,19 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
             quiz = s.chooseVolunteer(session_id, jobId,chosen_one)
             
             ###Join quiz on expression
+            
             RExpression = RExpression + quiz
             
-            
+            print RExpression
             
             vol_ip = chosen_one["ip"]
             vol_port = chosen_one["port"]
             
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             
-            
+            print "sending job to volunteer at:  "+str(vol_ip)+':'+str(vol_port)
             RData_file = vol_conn.compute_job(jobId, RExpression)
+            print " job computed"
             
             handle = open("output.RData", "wb")
         
