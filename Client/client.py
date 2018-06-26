@@ -78,10 +78,10 @@ def startVolunteer(session_id,machineName):
 
 #startVolunteer("caipirinha")
 #s.submitJob(session_id, 6, 2700, "NULL", "NULL", 4096, 1024)
-def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression):
+def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName):
     if session_id:
         print "Volunteers list for the job: "
-        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM)
+        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, fileName)
         
         volunteers = s.getVolunteersForJob(session_id, jobId)
         if(volunteers=="error"):
@@ -106,17 +106,19 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             
             print "sending job to volunteer at:  "+str(vol_ip)+':'+str(vol_port)
-            RData_file = vol_conn.compute_job(jobId, RExpression)
-            print " job computed"
+            print vol_conn.compute_job(jobId, RExpression)
             
-            handle = open("output.RData", "wb")
+            
+            
+          # handle = open("output.RData", "wb")
         
-            handle.write(RData_file.data)
-            handle.close()
+           # handle.write(RData_file.data)
+           # handle.close()
             
-            return "Job executed successfully"
+            return "Job dispatched successfully"
             
         else:
+            s.abortJob(session_id, jobId)
             return "No volunteers available to execute the job"
     else:
         return "Login first"
@@ -134,14 +136,8 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
 #except KeyboardInterrupt:
 #   print >> pickle.sys.stderr, 'Dummy Volunteers Interrupted: "Keyboard Interrupt"'
 
-
-
-
-
-#submitJob(session_id, preco, prazo, credibilidade, disponibilidade, disco, RAM)
-#print(s.submitJob(session_id, 6, 2700, "NULL", "NULL", "4096", "1024"))
-
-
+def getJobs(session_id):
+    return s.getJobs(session_id)
 
 
 # Print list of available methods

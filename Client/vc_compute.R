@@ -6,11 +6,12 @@
 source("clientCommand.R")
 source("client_config.R")
 
-compute <- function(mainexpression, userEnvironment=parent.frame(), mode="live" ){
+compute <- function(mainexpression, fileName,userEnvironment=parent.frame(), mode="live" ){
 	
 	ls()
 	
-	returnValue <- submitJob(6, 2700, 0.6544, 300000000, 4096, 1024, mainexpression)
+	
+	returnValue <- submitJob(6, 2700, 0.6544, 300000000, 4096, 1024, mainexpression, fileName)
 
 	return(returnValue)
 }
@@ -42,7 +43,9 @@ if(interactive()){
 	
 	
 	close(con)
-	compute({code})
+	
+	
+	compute({code}, filename)
 	
 	
 }

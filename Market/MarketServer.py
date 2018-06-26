@@ -13,6 +13,7 @@ import socket
 import MySQLdb as mdb
 import sys
 import os
+import datetime
 
 
 import clientAuth
@@ -142,7 +143,13 @@ def addMachine(client_ip,session_id, Name, CPU, Disc, RAM, Price):
         return "Wrong sql query!"    
     
     try:
-        cur.execute("""INSERT INTO Machines(mid, Name, CPU, Disc, RAM, Price) VALUES (%s, %s, %s, %s, %s, %s)""", (mid, Name, CPU, Disc, RAM, Price))
+        #scj -> successful computed jobs - for mathematical purpose starts with 1
+        scj = 1
+        
+        #credibility is calculated by this formula Cr(mid) = 1 - (f/scj ) which f is the fraction of saboteurs in the system = 0.012 = 1.2%
+        f = 0.012
+        credibility = 1 - (f/scj)
+        cur.execute("""INSERT INTO Machines(mid, Name, CPU, Disc, RAM, Price, scj, credibility) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""", (mid, Name, CPU, Disc, RAM, Price, scj, credibility))
         con.commit()
     except: 
         con.rollback()   
@@ -171,7 +178,7 @@ def getMachine(client_ip, session_id):
 server.register_function(getMachine, 'getMachine')
 
 @clientAuth.require_login
-def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM):
+def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName):
     
     jobId=1
     try:
@@ -183,7 +190,7 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
     
     try:
         initTime = time.time()
-        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline, InitTime) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline, initTime))
+        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline, InitTime, file) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline, initTime, fileName))
         con.commit()
     
     except: 
@@ -201,6 +208,28 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
     return jobId
 
 server.register_function(submitJob, 'submitJob')
+
+@clientAuth.require_login
+def abortJob(client_ip, session_id, jobId):
+    
+    try:
+        query = "DELETE FROM client_job WHERE Email='"+clientAuth.sessions[session_id]['email']+"' AND jobId="+str(jobId)
+        cur.execute(query)
+        con.commit()
+    except: 
+        con.rollback()
+     
+    try: 
+        query = "DELETE FROM job WHERE jobId="+str(jobId)
+        cur.execute(query)
+        con.commit()
+    except: 
+        con.rollback()
+    
+    return 
+    
+server.register_function(abortJob, 'abortJob')
+
  
 def checkClientOwnership(session_id, jobId):    
     #Job owner's email
@@ -402,8 +431,8 @@ def startVolunteer(client_ip, session_id, port, machineName):
 
 server.register_function(startVolunteer, 'startVolunteer')
 
-
-def checkJobResult(client_ip ,jobId, RData_file, volunteer_session):
+@volunteerAuth.require_login
+def checkJobResult(client_ip ,volunteer_session, jobId, RData_file):
     #connect to R
     try:
         conn = pyRserve.connect()
@@ -452,24 +481,104 @@ def checkJobResult(client_ip ,jobId, RData_file, volunteer_session):
         except: 
             print "Could not execute query: "+ query
             con.rollback()
+            
+            
+        try:
+            #get successful computed jobs for that machine
+            mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
+            query = """SELECT scj FROM machines WHERE mid= """+str(mid)
+            cur.execute(query)
+            scj = cur.fetchone()[0]
+            
+            #This volunteer computed one more job successfully 
+            scj = scj + 1
+            f = 0.012
+            credibility = 1 - (f/scj)
+            
+            #Update credibility and scj
+            
+                   
+            query = "UPDATE machines SET scj = "+ str(scj)+", credibility = "+str(credibility)+" WHERE mid = "+ str(mid)
+            cur.execute(query)
+            con.commit()
         
-    
+        except: 
+            print "Could not execute query: "+ query
+            con.rollback()
+        
+    else: 
+        #the volunteer computed a wrong result
+        # scj is now set to 1
+        # credibility is updated with the new scj
+        
+        try:
+            scj = 1
+            f = 0.012
+            credibility = 1 - (f/scj)
+            
+            #Update credibility and scj
+                
+            query = "UPDATE machines SET scj = "+ str(scj)+", credibility = "+str(credibility)+" WHERE mid = "+ str(mid)
+            cur.execute(query)
+            con.commit()
+        
+        except: 
+            print "Could not execute query: "+ query
+            con.rollback()
+        
+        
     conn.close()
     if conn.isClosed:
         print "Rserve connection is closed"
         
     
+    #Store Rdata path
+    
+    try:
+        query = "UPDATE job SET RDataPath = '"+ str(filename)+"' WHERE jobId = "+ str(jobId)
+        cur.execute(query)
+        con.commit()
+        
+    except:
+        print "Could not execute query: "+ query
+        con.rollback()
     
     #update volunteer state to FREE
     volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
      
-    try:
-        os.remove(filename)
-    except OSError:
-        pass
+ #   try:
+ #       os.remove(filename)
+ #   except OSError:
+ #       pass
     
     ##remove output.RData
 server.register_function(checkJobResult, 'checkJobResult')
+
+@clientAuth.require_login
+def getJobs(client_ip, session_id):
+
+    try:
+        query = """Select job.jobId, job.file, job.InitTime from client_job INNER JOIN job ON client_job.jobId=job.jobId WHERE client_job.Email='%s' """ % (clientAuth.sessions[session_id]["email"])
+        cur.execute(query)
+        result = cur.fetchall()
+    except:
+         print "Could not execute query: "+ query 
+        
+    
+    job_list = []
+    for entry in result:  
+        jobId = entry[0]     
+        file = entry[1]
+        date = datetime.datetime.fromtimestamp(entry[2]).strftime('%Y-%m-%d %H:%M:%S')
+        
+        job = (jobId, file, date)
+        job_list.append(job)
+        
+    return job_list    
+        
+server.register_function(getJobs, 'getJobs')
+        
+        
 
 def healthCheck():
     threading.Timer(30.0, healthCheck).start()

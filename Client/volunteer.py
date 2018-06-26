@@ -5,12 +5,13 @@ Created on May 7, 2018
 '''
 import xmlrpclib
 import sys
-from uptime import uptime
+import threading
 
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import pyRserve
+import uptime
 
 client_conn = xmlrpclib.ServerProxy('http://localhost:11111')
 
@@ -19,7 +20,7 @@ session_id = client_conn.checkVolunteer(sys.argv[2], sys.argv[1])
 if(session_id):
     sys.exit(0)
 
-server = SimpleXMLRPCServer(("0.0.0.0", 0), allow_none=True)
+server = SimpleXMLRPCServer(("0.0.0.0", 0), logRequests=False, allow_none=True)
 server.register_introspection_functions()
 
 listenner_port = server.server_address[1];
@@ -29,10 +30,7 @@ vol_session_id = client_conn.startVolunteer(sys.argv[2], listenner_port, sys.arg
 
 
 
-#threadBandwidthEstimator = startBW()
-def compute_job(jobId, RExpression):
-    print("RExpression to compute:" + str(RExpression))
-    
+def compute(jobId, RExpression):
     try:
         conn = pyRserve.connect()
     except:
@@ -45,12 +43,12 @@ def compute_job(jobId, RExpression):
     print "R variables cleaned"
     print conn.eval(str(RExpression))
     print("Expression computed")
-    print conn.eval('save.image("output.RData")')
+    print conn.eval('save.image("'+str(jobId)+'_output.RData")')
     print("output.RData produced")
     path = conn.eval('getwd()')
     
  
-    with open(str(path)+"/output.RData", "rb") as handle:
+    with open(str(path)+"/"+str(jobId)+"_output.RData", "rb") as handle:
         binary_data = xmlrpclib.Binary(handle.read())
 
     print "binary_data produced"
@@ -58,19 +56,26 @@ def compute_job(jobId, RExpression):
     conn.close()
     if conn.isClosed:
         print "Rserve connection is closed"
-   
+        
+    client_conn.checkJobResult(vol_session_id, jobId, binary_data)
+        
     
-    client_conn.checkJobResult(jobId, binary_data, vol_session_id)
+
+#threadBandwidthEstimator = startBW()
+def compute_job(jobId, RExpression):
+    print("RExpression to compute:" + str(RExpression))
     
+    t = threading.Thread(target=compute, args=(jobId, RExpression))
+    t.start()
     
-    return binary_data
+    return "job was sent successfully"
 
 server.register_function(compute_job, 'compute_job')
 
 
 def healthCheck():
     
-    return uptime()
+    return uptime.uptime()
 
 server.register_function(healthCheck, 'healthCheck')
 
