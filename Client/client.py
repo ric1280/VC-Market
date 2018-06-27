@@ -140,6 +140,21 @@ def getJobs(session_id):
     return s.getJobs(session_id)
 
 
+def loadJob(session_id, jobId):
+    
+    result = s.loadJob(session_id, jobId)
+    if isinstance(result, basestring):
+        return result
+    
+    handle = open(str(jobId)+"_output.RData", "wb")
+        
+    handle.write(result.data)
+    handle.close()
+    
+    return "OK"
+        
+
+
 # Print list of available methods
 #print(s.system.listMethods())
 

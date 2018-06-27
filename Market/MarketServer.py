@@ -23,6 +23,7 @@ from Client.client import session_id
 
 import pyRserve
 import time
+from fileinput import filename
 
 #print(str(socket.gethostbyname(socket.getfqdn())))
 
@@ -577,8 +578,30 @@ def getJobs(client_ip, session_id):
     return job_list    
         
 server.register_function(getJobs, 'getJobs')
+
+
+@clientAuth.require_login
+def loadJob(client_ip, session_id, jobId):
+    
+    if checkClientOwnership(session_id, jobId) != "OK":
+        return "This client is not the owner of this jobId - execute getJobs() to get a list of authorized jobs"
+    
+    
+    try:
+        query = """Select job.RDataPath from client_job INNER JOIN job ON client_job.jobId=job.jobId WHERE client_job.Email='%s' AND job.jobId=%s""" % (clientAuth.sessions[session_id]["email"], jobId)
+        cur.execute(query)
+        path = cur.fetchone()[0]
+        if not path:
+            return "This client is not the owner of this jobId "
+    except:
+        return "Could not execute query: "+ query 
+         
+    with open(path, "rb") as handle:
+        binary_data = xmlrpclib.Binary(handle.read())  
+    
+    return binary_data
         
-        
+server.register_function(loadJob, 'loadJob')        
 
 def healthCheck():
     threading.Timer(30.0, healthCheck).start()

@@ -75,16 +75,53 @@ submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression,
 
 getJobs <- function(){
 	job_list <- python.call("getJobs", client_session_id)
-	for(job in 1:nrow(job_list)) {
+	
+	#for(job in 1:nrow(job_list)) {
 		
-		print("####################")
+	#	print("####################")
 		
-		print(paste("JobId:" ,  job_list[job, 1]))
-		print(paste("File computed:" ,  job_list[job, 2]))
-		print(paste("Submission time:" ,  job_list[job, 3]))
-		
+		#print(paste("JobId:" ,  job_list[job, 1]))
+		##print(paste("File computed:" ,  job_list[job, 2]))
+		#print(paste("Submission time:" ,  job_list[job, 3]))
+	
+	tab<-c()
+	for(i in 1:length(job_list)){
+		tab<-rbind(tab,unlist(job_list[[i]]))
 		
 	}
+	colnames(tab)<-c("JobId","Computed file","Submission time")
+	#write.table(as.data.frame(tab), row.names=F, col.names=T, sep="\t")
+	print(as.data.frame(tab),row.names = FALSE)
+	#}
+	#return(job_list)
+}
+
+loadJob <- function(jobId){
+	#Check if the RData file already exists on client side
 	
-	print(job_list)
+	file_name <- paste(jobId,'_output.RData',sep="")
+	if (!file.exists(file_name)) {
+		job_msg <- python.call("loadJob", client_session_id, jobId)
+		if(job_msg == "OK"){
+			print(paste("Job with id:",jobId, " was downloaded to ", getwd(), "with filename: ", file_name))
+		}
+	}else{
+		print("RData file already exists - Loading file loacally...")
+		job_msg <- "OK"
+	}
+	
+	if(job_msg != "OK"){
+		print(job_msg)
+		
+	}else{
+		job<-load( file_name, envir=call_env)
+		print("Job loaded successfully")
+		
+		print("Objects loaded: ")
+		print(job)
+		
+		#symbol_list<-ls()
+		#print(symbol_list)
+	}
+	
 }
