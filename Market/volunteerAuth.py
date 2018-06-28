@@ -105,6 +105,11 @@ def health_check_request_fail(session_id):
     if session_id in volunteer_sessions: 
         session = volunteer_sessions[session_id]
         if is_timestamp_expired(session["last_visit"]):
+                
+            
                 invalidate_volunteer_session_id(session["session_id"])
                 print "volunteer "+ session["Name"]+  " logged out"
+                return True
+            
+    return False
     

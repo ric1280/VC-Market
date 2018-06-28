@@ -24,6 +24,7 @@ from Client.client import session_id
 import pyRserve
 import time
 from fileinput import filename
+from uptime import uptime
 
 #print(str(socket.gethostbyname(socket.getfqdn())))
 
@@ -420,7 +421,8 @@ def startVolunteer(client_ip, session_id, port, machineName):
                                                           "RAM"  : data[2],
                                                           "Price"  : data[3],
                                                           "last_visit": volunteerAuth.get_timestamp(),
-                                                          "State" : "FREE"}
+                                                          "State" : "FREE",
+                                                          "initTime": time.time()}
     
     
     else:
@@ -619,7 +621,22 @@ def healthCheck():
                 print "volunteer " + volunteerAuth.volunteer_sessions[session_id]["Name"] + "passed health-check successfully! - uptime -> "+str(hc)
         
         except:
-            volunteerAuth.health_check_request_fail(volunteerAuth.volunteer_sessions[session_id]["session_id"])
+            initTime = volunteerAuth.volunteer_sessions[session_id]["initTime"]
+            mid = volunteerAuth.volunteer_sessions[session_id]["mid"]
+            if(volunteerAuth.health_check_request_fail(volunteerAuth.volunteer_sessions[session_id]["session_id"])):
+                
+                
+                try:
+                    query = """INSERT INTO availability(mid, uptime) VALUES (%s, %s)""" % (mid, time.time()-initTime)
+      
+                    cur.execute(query)
+                    con.commit()
+            
+                except:
+                    print "Could not execute query: "+ query
+                    con.rollback()
+    
+                
         
 
   
