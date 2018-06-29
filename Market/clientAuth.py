@@ -20,7 +20,9 @@ EPOCH = 1523506158
 def get_timestamp():
     return int(time.time() - EPOCH)
     
-def is_timestamp_expired(timestamp, max_age = 120): 
+    
+### A user is active during 900 seconds (15 minutes) without making any request to the market Server
+def is_timestamp_expired(timestamp, max_age = 900): 
     age = get_timestamp() - timestamp
     if age > max_age:
         return True

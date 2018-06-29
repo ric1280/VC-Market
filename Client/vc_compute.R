@@ -11,7 +11,7 @@ compute <- function(mainexpression, fileName,userEnvironment=parent.frame(), mod
 	ls()
 	
 	
-	returnValue <- submitJob(6, 2700, 0.6544, 300000000, 4096, 1024, mainexpression, fileName)
+	returnValue <- submitJob(6, 2700, 0.6544, 300000000, 4096, 1024, mainexpression, fileName, "NULL")
 
 	return(returnValue)
 }

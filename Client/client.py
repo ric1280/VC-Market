@@ -78,10 +78,10 @@ def startVolunteer(session_id,machineName):
 
 #startVolunteer("caipirinha")
 #s.submitJob(session_id, 6, 2700, "NULL", "NULL", 4096, 1024)
-def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName):
+def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime):
     if session_id:
         print "Volunteers list for the job: "
-        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, fileName)
+        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime)
         
         volunteers = s.getVolunteersForJob(session_id, jobId)
         if(volunteers=="error"):
@@ -91,14 +91,14 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
         
         
         if volunteers:
+            
+            
             chosen_one = volunteers[0]
             quiz = s.chooseVolunteer(session_id, jobId,chosen_one)
             
             ###Join quiz on expression
             
             RExpression = RExpression + quiz
-            
-            print RExpression
             
             vol_ip = chosen_one["ip"]
             vol_port = chosen_one["port"]

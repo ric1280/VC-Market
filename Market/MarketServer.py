@@ -26,6 +26,7 @@ import time
 from fileinput import filename
 from uptime import uptime
 
+
 #print(str(socket.gethostbyname(socket.getfqdn())))
 
 jobBuffer = dict()
@@ -180,7 +181,7 @@ def getMachine(client_ip, session_id):
 server.register_function(getMachine, 'getMachine')
 
 @clientAuth.require_login
-def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName):
+def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime):
     
     jobId=1
     try:
@@ -191,8 +192,11 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
         return "Wrong sql query: SELECT COUNT(jobId) FROM job!"    
     
     try:
+        
+        if(meanUptime=="NULL"):
+            meanUptime = 0
         initTime = time.time()
-        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline, InitTime, file) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline, initTime, fileName))
+        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline, InitTime, file, MeanUptime) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline, initTime, fileName, meanUptime))
         con.commit()
     
     except: 
@@ -257,6 +261,17 @@ def checkClientOwnership(session_id, jobId):
     
     return "OK"   
 
+
+
+def calcVolunteerMeanUptime(uptimes):
+    
+    meanUptime = 0
+    for uptime in uptimes:
+        meanUptime = meanUptime + uptime
+    
+    meanUptime  = meanUptime / len(uptimes)
+    return meanUptime
+
 @clientAuth.require_login
 def getVolunteersForJob(client_ip, session_id, jobId):      
     
@@ -272,13 +287,18 @@ def getVolunteersForJob(client_ip, session_id, jobId):
     except:
         return "Wrong sql query: "+ query    
     
+    
+            
+    
+    
 
-    price = jobData[7];
-    deadline = jobData[8];
-    credibility = jobData[1];
-    CPU = jobData[2];
-    disc = jobData[3];
-    RAM = jobData[4];
+    price = jobData[7]
+    deadline = jobData[8]
+    credibility = jobData[1]
+    CPU = jobData[2]
+    disc = jobData[3]
+    RAM = jobData[4]
+    meanUptime = jobData[12]
     
     Email = clientAuth.session_to_email(session_id)
     
@@ -294,7 +314,7 @@ def getVolunteersForJob(client_ip, session_id, jobId):
     if volunteerAuth.volunteer_sessions:
         for session in volunteerAuth.volunteer_sessions:
             machine = volunteerAuth.volunteer_sessions[session]
-            
+                    
             if machine['State'] == "BUSY":
                 continue
             
@@ -311,6 +331,23 @@ def getVolunteersForJob(client_ip, session_id, jobId):
             if CPU != "NULL":
                 if machine['CPU'] < CPU:
                     continue
+                
+            if credibility != "NULL":
+                if machine['credibility'] < credibility:
+                    continue
+                
+                
+            #Calculate estimate time till a failure for this machine based on mean time between a failure and the time that the machine is running
+            ###
+            ###  The formula is :     eTime = mtbf - (now() - initTime)
+            
+            eTime = machine['mtbf'] - (time.time() - machine['initTime'])
+            
+            #Skip all machines with estimated time < meanUptime requested by the client
+            if max(eTime, 0) < meanUptime:
+                continue
+            
+               
                 
             job_candidates.append({"Name"  : machine["Name"],
                                    "mid" : machine["mid"],
@@ -403,16 +440,34 @@ def startVolunteer(client_ip, session_id, port, machineName):
             
         #populate_machine_data
         try:
-            cur.execute("""Select CPU, Disc, RAM, Price, Machines.mid from UserMachines INNER JOIN Machines ON UserMachines.mid=Machines.mid WHERE UserMachines.Email='%s' AND Machines.NAME='%s'""" % (Email, machineName))
+            cur.execute("""Select CPU, Disc, RAM, Price, Machines.mid, credibility from UserMachines INNER JOIN Machines ON UserMachines.mid=Machines.mid WHERE UserMachines.Email='%s' AND Machines.NAME='%s'""" % (Email, machineName))
             data = cur.fetchall()      
             data = data[0]
             print (str(data)) 
         except:
             return "Error getting the machines!"
+        
+        
+        query = "SELECT uptime from availability where mid="+str(data[4])
     
+        try:
+            cur.execute(query)
+            times = cur.fetchall()
+        except:
+            return "Wrong sql query: "+ query 
+        
+        uptimes = []
+        for uptime in times:
+            uptimes.append(uptime[0])
+            
+        print str(uptimes)
+        
+        
+        #meanTime between failure
+        mtbf = calcVolunteerMeanUptime(uptimes)
     
         volunteerAuth.volunteer_sessions[vol_session_id] = {"Name"  : machineName,
-                                                            "mid" : data[4], 
+                                                          "mid" : data[4], 
                                                           "ip"  : client_ip,
                                                           "port"  : port,
                                                           "session_id": vol_session_id,
@@ -420,9 +475,11 @@ def startVolunteer(client_ip, session_id, port, machineName):
                                                           "Disc"  : data[1],
                                                           "RAM"  : data[2],
                                                           "Price"  : data[3],
+                                                          "credibility" : data[5],
                                                           "last_visit": volunteerAuth.get_timestamp(),
                                                           "State" : "FREE",
-                                                          "initTime": time.time()}
+                                                          "initTime": time.time(), 
+                                                          "mtbf" : mtbf}
     
     
     else:

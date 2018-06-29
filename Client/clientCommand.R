@@ -58,11 +58,11 @@ startVolunteer <- function(machineName)
 	python.call("startVolunteer", client_session_id, machineName)
 }
 
-submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression, fileName) 
+submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime) 
 {
 	
 	
-	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName)
+	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime)
 	if(returning_msg == "Job executed successfully"){
 		load('output.RData', envir=call_env)
 		print("Job loaded successfully")
@@ -76,24 +76,28 @@ submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression,
 getJobs <- function(){
 	job_list <- python.call("getJobs", client_session_id)
 	
-	#for(job in 1:nrow(job_list)) {
+	if(length(job_list) == 0){
+		print("You have no jobs available")
 		
-	#	print("####################")
+	}else{
+
+		tab<-c()
+		if(length(job_list[[1]])==1){
+			
+			tab<-rbind(tab,unlist(job_list))
+		}else{
+			for(i in 1:length(job_list)){			
+				tab<-rbind(tab,unlist(job_list[[i]]))
+			}
+		}	
 		
-		#print(paste("JobId:" ,  job_list[job, 1]))
-		##print(paste("File computed:" ,  job_list[job, 2]))
-		#print(paste("Submission time:" ,  job_list[job, 3]))
+		colnames(tab)<-c("JobId","Computed file","Submission time")
+		#write.table(as.data.frame(tab), row.names=F, col.names=T, sep="\t")
+		print(as.data.frame(tab),row.names = FALSE)
 	
-	tab<-c()
-	for(i in 1:length(job_list)){
-		tab<-rbind(tab,unlist(job_list[[i]]))
-		
 	}
-	colnames(tab)<-c("JobId","Computed file","Submission time")
-	#write.table(as.data.frame(tab), row.names=F, col.names=T, sep="\t")
-	print(as.data.frame(tab),row.names = FALSE)
-	#}
-	#return(job_list)
+
+	
 }
 
 loadJob <- function(jobId){
