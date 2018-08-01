@@ -7,6 +7,7 @@
 suppressWarnings(library("rPython"))
 
 python.load("../Client/client.py")
+python.load("../Client/codeParser.py")
 
 
 ###############################COMMANDS################################
@@ -58,11 +59,14 @@ startVolunteer <- function(machineName)
 	python.call("startVolunteer", client_session_id, machineName)
 }
 
-submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime) 
+submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName) 
 {
 	
+	variables_list <- python.call("getVariablesfromCode", RExpression)
+	print(paste("variables list:", variables_list))
 	
-	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime)
+	
+	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName, variables_list)
 	if(returning_msg == "Job executed successfully"){
 		load('output.RData', envir=call_env)
 		print("Job loaded successfully")
@@ -91,7 +95,7 @@ getJobs <- function(){
 			}
 		}	
 		
-		colnames(tab)<-c("JobId","Computed file","Submission time")
+		colnames(tab)<-c("JobId","Computed file","Submission time", "Status")
 		#write.table(as.data.frame(tab), row.names=F, col.names=T, sep="\t")
 		print(as.data.frame(tab),row.names = FALSE)
 	

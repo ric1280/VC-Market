@@ -78,10 +78,10 @@ def startVolunteer(session_id,machineName):
 
 #startVolunteer("caipirinha")
 #s.submitJob(session_id, 6, 2700, "NULL", "NULL", 4096, 1024)
-def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime):
+def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName, variables_list):
     if session_id:
         print "Volunteers list for the job: "
-        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime)
+        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime, variables_list)
         
         volunteers = s.getVolunteersForJob(session_id, jobId)
         if(volunteers=="error"):
@@ -106,14 +106,16 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             
             print "sending job to volunteer at:  "+str(vol_ip)+':'+str(vol_port)
-            print vol_conn.compute_job(jobId, RExpression)
             
+            with open(RData_fileName, "rb") as handle:
+                input_binary_data = xmlrpclib.Binary(handle.read())
             
+            print vol_conn.compute_job(jobId, RExpression, input_binary_data)
             
-          # handle = open("output.RData", "wb")
-        
-           # handle.write(RData_file.data)
-           # handle.close()
+            try:
+                os.remove(RData_fileName)
+            except OSError:
+                pass
             
             return "Job dispatched successfully"
             
@@ -135,6 +137,59 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
 
 #except KeyboardInterrupt:
 #   print >> pickle.sys.stderr, 'Dummy Volunteers Interrupted: "Keyboard Interrupt"'
+
+def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
+    ## the quorum can be any odd number >= 3 
+    ## For example 3, 5, 7, 9, etc.
+    
+    ##There is no need to submit the job because this option can only be activated to complain / validate a previous computed job
+    ##So the job is already on database
+    
+    volunteers = s.getVolunteersForJob(session_id, jobId)
+    if(volunteers=="error"):
+        return "wrong jobId - you don't have owner permissions to that job"
+    
+    if quorum % 2 == 0 or quorum < 3:
+        return "Enter a valid quorum number: must be a odd integer number bigger or equal to 3"
+        
+    if len(volunteers)>= quorum-1:
+        
+        
+        chosen_volunteers = []
+        quizes = []
+        
+        
+        with open(RData_fileName, "rb") as handle:
+            input_binary_data = xmlrpclib.Binary(handle.read())
+        
+        for i in range(0, quorum-1):
+            
+            chosen_volunteer = volunteers[i]
+            quiz = s.chooseVolunteer(session_id, jobId, chosen_volunteer)
+            
+            chosen_volunteers.append(chosen_volunteer)
+            quizes.append(quiz)
+            ###Join quiz on expression
+            Expression = RExpression + quiz
+    
+            vol_ip = chosen_volunteer["ip"]
+            vol_port = chosen_volunteer["port"]
+        
+            vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
+            print "sending job to volunteer at:  "+str(vol_ip)+':'+str(vol_port)
+            
+            print vol_conn.compute_job(jobId, Expression, input_binary_data)
+         
+        
+        try:
+            os.remove(RData_fileName)
+        except OSError:
+            pass
+        
+        return "Job dispatched successfully"
+
+        
+        
 
 def getJobs(session_id):
     return s.getJobs(session_id)

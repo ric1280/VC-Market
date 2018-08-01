@@ -10,8 +10,12 @@ compute <- function(mainexpression, fileName,userEnvironment=parent.frame(), mod
 	
 	ls()
 	
+	##Save environment to send to volunteer 
 	
-	returnValue <- submitJob(6, 2700, 0.6544, 300000000, 4096, 1024, mainexpression, fileName, "NULL")
+	RData_filename = paste(fileName,"_input.RData", sep="")
+	save.image(RData_filename)
+	
+	returnValue <- submitJob(6, 2700, 0.6544, 300000000, 4096, 1024, mainexpression, fileName, "NULL", RData_filename)
 
 	return(returnValue)
 }
@@ -43,8 +47,7 @@ if(interactive()){
 	
 	
 	close(con)
-	
-	
+
 	compute({code}, filename)
 	
 	

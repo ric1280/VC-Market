@@ -18,13 +18,17 @@ import datetime
 
 import clientAuth
 import volunteerAuth
+
+
+
 import threading
-from Client.client import session_id
+
 
 import pyRserve
 import time
 from fileinput import filename
 from uptime import uptime
+from _mysql import NULL
 
 
 #print(str(socket.gethostbyname(socket.getfqdn())))
@@ -181,7 +185,7 @@ def getMachine(client_ip, session_id):
 server.register_function(getMachine, 'getMachine')
 
 @clientAuth.require_login
-def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime):
+def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime, variables_list):
     
     jobId=1
     try:
@@ -209,6 +213,18 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
         con.commit()
     except: 
         con.rollback()
+        
+        
+    Email = clientAuth.session_to_email(session_id)
+    
+    if not isinstance(variables_list, list):
+        aux_list = list()
+        aux_list.append(variables_list)
+        variables_list = list(aux_list)
+    
+    jobBuffer[jobId] = {"Email"  : Email,
+                        "vars": variables_list
+                        }
      
 
     return jobId
@@ -261,6 +277,29 @@ def checkClientOwnership(session_id, jobId):
     
     return "OK"   
 
+def clientAllocationCheck(session_id, jobId):    
+    #Job owner's email
+    Email = clientAuth.session_to_email(session_id)
+    
+    #Get number of machines 
+    query = "Select jobId FROM client_job WHERE Email='"+str(Email)+"'"
+    try:
+        cur.execute(query)
+        jobIds = cur.fetchall()
+        
+    except:
+        return "Wrong sql query: "+ query    
+    
+    #Check if the user has registered this job
+    jobMatching = False
+    for job in jobIds:
+        if jobId in job:
+            jobMatching = True
+            
+    if not jobMatching:
+        return "error"
+    
+    return "OK"   
 
 
 def calcVolunteerMeanUptime(uptimes):
@@ -272,25 +311,14 @@ def calcVolunteerMeanUptime(uptimes):
     meanUptime  = meanUptime / len(uptimes)
     return meanUptime
 
-@clientAuth.require_login
-def getVolunteersForJob(client_ip, session_id, jobId):      
-    
-    valuemsg = checkClientOwnership(session_id, jobId)
-    if(valuemsg != "OK"):
-        return valuemsg
-    
+def getCandidates(jobId):
     query = "SELECT * FROM job WHERE jobId="+str(jobId)
     try:
         cur.execute(query)
         jobData = cur.fetchone()
         
     except:
-        return "Wrong sql query: "+ query    
-    
-    
-            
-    
-    
+        return "Wrong sql query: "+ query
 
     price = jobData[7]
     deadline = jobData[8]
@@ -299,17 +327,7 @@ def getVolunteersForJob(client_ip, session_id, jobId):
     disc = jobData[3]
     RAM = jobData[4]
     meanUptime = jobData[12]
-    
-    Email = clientAuth.session_to_email(session_id)
-    
-    jobBuffer[Email] = {"price"  : price,
-                        "deadline": deadline,
-                        "credibility": credibility,
-                        "CPU": CPU,
-                        "disc": disc,
-                        "RAM": RAM}
-    
-    
+     
     job_candidates = []
     if volunteerAuth.volunteer_sessions:
         for session in volunteerAuth.volunteer_sessions:
@@ -357,22 +375,27 @@ def getVolunteersForJob(client_ip, session_id, jobId):
                                   "Disc"  : machine["Disc"],
                                   "RAM"  : machine["RAM"],
                                   "Price"  : machine["Price"]})
+            return job_candidates
+    
+
+@clientAuth.require_login
+def getVolunteersForJob(client_ip, session_id, jobId):      
+    
+    valuemsg = checkClientOwnership(session_id, jobId)
+    if(valuemsg != "OK"):
+        return valuemsg
+    
+    valuemsg = clientAllocationCheck(session_id, jobId)
+    if(valuemsg != "OK"):
+        return valuemsg
             
-    return job_candidates
+    return getCandidates(jobId)
    
 server.register_function(getVolunteersForJob, 'getVolunteersForJob')    
 
 
-
-
 #def job_result_validation(volunteer_ip, vol_session_id, jobId, ):
-
-@clientAuth.require_login
-def chooseVolunteer(client_ip, session_id, jobId, volunteer):
-    #validate jobID
-    valuemsg = checkClientOwnership(session_id, jobId)
-    if(valuemsg != "OK"):
-        return valuemsg
+def linkJobVolunteer(jobId, volunteer):
     #link the job to volunteer on database
     try:
         cur.execute("""INSERT INTO machine_job(mid, jobId) VALUES (%s ,%s)""", (volunteer["mid"], jobId))
@@ -387,16 +410,53 @@ def chooseVolunteer(client_ip, session_id, jobId, volunteer):
             
             if machine["mid"]==volunteer["mid"]:
                 machine["State"] = "BUSY"
+                
+                
+
+def getQuiz(jobId):
+                
+    #Select a random quiz
+    
+    try:
+        query = """SELECT input FROM market_quiz
+                ORDER BY RAND()
+                LIMIT 1"""
+        cur.execute(query)   
+        quiz_input = cur.fetchone()[0]
+             
+    except:
+        return "Error executing query: "+query
+                
     
     quiz = """\n collatz <- function(n, acc=0) {
                 if(n==1) return(acc);
                 collatz(ifelse(n%%2==0, n/2, 3*n +1), acc+1)
                 }
                 
-                quiz<-collatz(27)
-               """
+                quiz<-collatz("""+ str(int(quiz_input))+")"
+                
+    
+    ### Link the quiz to jobId
+    try: 
+        cur.execute("""insert into job_quiz(jobId, input) values (%s ,%s)""", (jobId, quiz_input))
+        con.commit()
+    except: 
+        con.rollback()
+               
+        
     
     return quiz
+
+
+@clientAuth.require_login
+def chooseVolunteer(client_ip, session_id, jobId, volunteer):
+    #validate jobID
+    valuemsg = checkClientOwnership(session_id, jobId)
+    if(valuemsg != "OK"):
+        return valuemsg
+    
+    linkJobVolunteer(jobId, volunteer)
+    return getQuiz( jobId)
     
 server.register_function(chooseVolunteer, 'chooseVolunteer')    
 
@@ -460,11 +520,13 @@ def startVolunteer(client_ip, session_id, port, machineName):
         for uptime in times:
             uptimes.append(uptime[0])
             
-        print str(uptimes)
-        
+        print str(uptimes)     
         
         #meanTime between failure
-        mtbf = calcVolunteerMeanUptime(uptimes)
+        if uptimes:
+            mtbf = calcVolunteerMeanUptime(uptimes)
+        else:
+            mtbf = 3600     #If there is no uptimes records for this machine assume an mtbf of 1 hour
     
         volunteerAuth.volunteer_sessions[vol_session_id] = {"Name"  : machineName,
                                                           "mid" : data[4], 
@@ -484,15 +546,86 @@ def startVolunteer(client_ip, session_id, port, machineName):
     
     else:
         return "wrong machine name - regist machine first"
-    
-    
+
     
     return vol_session_id
 
 server.register_function(startVolunteer, 'startVolunteer')
 
 @volunteerAuth.require_login
-def checkJobResult(client_ip ,volunteer_session, jobId, RData_file):
+def ExecutionError(client_ip ,volunteer_session, jobId):
+    
+    cur.execute("""SELECT mid FROM machine_job WHERE jobId=%s""" % jobId)
+    
+    result = cur.fetchone()
+    if result == None:
+        return "This machine does not exist or was not assigned to a volunteer"    
+       
+    if result[0] != volunteerAuth.volunteer_sessions[volunteer_session]["mid"]:  
+        return "The machine" + volunteerAuth.volunteer_sessions[volunteer_session]["mid"]+ " was not assigned to job with id" + str(jobId)
+    
+    try: 
+        query = "UPDATE machine_job SET status = 'Error' WHERE mid = "+ str(volunteerAuth.volunteer_sessions[volunteer_session]["mid"]) + " AND jobId ="+ str(jobId)
+        cur.execute(query)
+        con.commit()
+    except: 
+        return "Error executing query: "+query
+        con.rollback()
+    
+    if False:
+        try:
+            cur.execute("DELETE FROM machine_job WHERE mid="+ str(volunteerAuth.volunteer_sessions[volunteer_session]["mid"]) + " AND jobId="+str(jobId))
+            con.commit()
+        except: 
+            con.rollback()
+            
+        
+        
+        try:
+            query = "DELETE FROM client_job WHERE jobId="+str(jobId)
+            cur.execute(query)
+            con.commit()
+        except: 
+            con.rollback()
+         
+        try: 
+            query = "DELETE FROM job WHERE jobId="+str(jobId)
+            cur.execute(query)
+            con.commit()
+        except: 
+            con.rollback()
+        
+    volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
+
+server.register_function(ExecutionError, 'ExecutionError')
+
+@volunteerAuth.require_login
+def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_input):
+    
+    cur.execute("""SELECT mid FROM machine_job WHERE jobId=%s""" % jobId)
+    
+    result = cur.fetchone()
+    if result == None:
+        return "This machine does not exist or was not assigned to a volunteer"    
+       
+    if result[0] != volunteerAuth.volunteer_sessions[volunteer_session]["mid"]:  
+        return "The machine" + volunteerAuth.volunteer_sessions[volunteer_session]["mid"]+ " was not assigned to job with id" + str(jobId)
+    
+    
+        
+    #Verify RData_output
+    #If there is no RData_Output then there was an execution error
+    if RData_output == None:
+        try: 
+            query = "UPDATE machine_job SET status = 'Error' WHERE mid = "+ str(volunteerAuth.volunteer_sessions[volunteer_session]["mid"]) + " AND jobId ="+ str(jobId)
+            cur.execute(query)
+            con.commit()
+        except: 
+            return "Error executing query: "+query
+            con.rollback()
+    
+    
+    
     #connect to R
     try:
         conn = pyRserve.connect()
@@ -504,15 +637,47 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_file):
     filename = str(path)+"/"+str(jobId) + "_output.RData"
     handle = open(filename, "wb")
         
-    handle.write(RData_file.data)
+    handle.write(RData_output.data)
     handle.close()
 
     conn.eval("rm(list=ls())")
     conn.voidEval('load("'+filename+'")')
     quiz = conn.eval("quiz")
     
-    #FIT IT - check the quiz result for that job - the quiz is not always the same
-    if quiz == 111:
+    #Job validation
+    #criteria1 - validate the quiz variable
+    
+    try:
+        query = """SELECT output FROM market_quiz INNER JOIN job_quiz ON market_quiz.input=job_quiz.input WHERE jobId="""+str(jobId)
+        cur.execute(query)   
+        quiz_output = cur.fetchone()[0]
+             
+    except:
+        return "Error executing query: "+query
+                
+    
+    if quiz == quiz_output:
+        criteria1 = True
+    else:
+        criteria1 = False
+    
+    #criteria2 - validate if the variables updated/created are available on output.RData
+    #This method can generate false positives because the test pass if no new variables were created in this job computation
+    #However, this method does not generate false negatives because if the expected variables are not in the RData file so the job 
+    #execution is corrupted or failed
+    
+    
+    variables = conn.eval("ls()[!sapply(ls(), function(x) is.function(get(x)))]")
+    
+    if(set(jobBuffer[jobId]["vars"]).issubset(set(variables)) ):
+        criteria2 = True
+    else:
+        criteria2 = False
+
+    #del jobBuffer[jobId]
+    
+    
+    if criteria1 and criteria2:
         print "The computed job with the id "+ str(jobId) + " was successfully validated!"
         try:
             query = "UPDATE job SET Status = 'Success' WHERE jobId = "+ str(jobId)
@@ -561,17 +726,26 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_file):
             query = "UPDATE machines SET scj = "+ str(scj)+", credibility = "+str(credibility)+" WHERE mid = "+ str(mid)
             cur.execute(query)
             con.commit()
+            
+            query = "UPDATE machine_job SET status = 'Success' WHERE mid = "+ str(mid) + " AND jobId ="+ str(jobId)
+            cur.execute(query)
+            con.commit()
         
         except: 
             print "Could not execute query: "+ query
             con.rollback()
         
     else: 
+       
         #the volunteer computed a wrong result
         # scj is now set to 1
         # credibility is updated with the new scj
         
+        
+        
         try:
+            
+            mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
             scj = 1
             f = 0.012
             credibility = 1 - (f/scj)
@@ -581,10 +755,17 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_file):
             query = "UPDATE machines SET scj = "+ str(scj)+", credibility = "+str(credibility)+" WHERE mid = "+ str(mid)
             cur.execute(query)
             con.commit()
+            
+             
+            query = "UPDATE machine_job SET status = 'Wrong' WHERE mid = "+ str(mid) + " AND jobId ="+ str(jobId)
+            cur.execute(query)
+            con.commit()
+        
         
         except: 
             print "Could not execute query: "+ query
             con.rollback()
+        
         
         
     conn.close()
@@ -606,11 +787,7 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_file):
     #update volunteer state to FREE
     volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
      
- #   try:
- #       os.remove(filename)
- #   except OSError:
- #       pass
-    
+
     ##remove output.RData
 server.register_function(checkJobResult, 'checkJobResult')
 
@@ -618,7 +795,7 @@ server.register_function(checkJobResult, 'checkJobResult')
 def getJobs(client_ip, session_id):
 
     try:
-        query = """Select job.jobId, job.file, job.InitTime from client_job INNER JOIN job ON client_job.jobId=job.jobId WHERE client_job.Email='%s' """ % (clientAuth.sessions[session_id]["email"])
+        query = """Select job.jobId, job.file, job.InitTime, job.Status from client_job INNER JOIN job ON client_job.jobId=job.jobId WHERE client_job.Email='%s' """ % (clientAuth.sessions[session_id]["email"])
         cur.execute(query)
         result = cur.fetchall()
     except:
@@ -630,8 +807,9 @@ def getJobs(client_ip, session_id):
         jobId = entry[0]     
         file = entry[1]
         date = datetime.datetime.fromtimestamp(entry[2]).strftime('%Y-%m-%d %H:%M:%S')
+        status = entry[3]
         
-        job = (jobId, file, date)
+        job = (jobId, file, date, status)
         job_list.append(job)
         
     return job_list    

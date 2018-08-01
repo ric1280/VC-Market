@@ -31,4 +31,4 @@ pfact <- function(number)
 
 #result <- pfact(234536332)
 
-result <- pfact(234536332)
+result <- pfact(quiz)
