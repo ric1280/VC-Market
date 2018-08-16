@@ -12,10 +12,10 @@ import os
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import pyRserve
-import uptime
 
 
-client_conn = xmlrpclib.ServerProxy('http://localhost:11111')
+
+client_conn = xmlrpclib.ServerProxy('http://localhost:11111',allow_none=True)
 
 session_id = client_conn.checkVolunteer(sys.argv[2], sys.argv[1])
 
@@ -33,8 +33,11 @@ vol_session_id = client_conn.startVolunteer(sys.argv[2], listenner_port, sys.arg
 
 
 def RComputing(jobId, RExpression, input_binary_data):
+    
+    output_binary_data = None
     try:
         conn = pyRserve.connect()
+        print "Rserve connection stablished"
     except:
         print "RServe not running... execute Rserve"
         return
@@ -77,10 +80,6 @@ def RComputing(jobId, RExpression, input_binary_data):
     
         print "binary_data produced"
         
-        conn.close()
-        if conn.isClosed:
-            print "Rserve connection is closed"
-            
         try:
             os.remove(output_filename)
         except OSError:
@@ -94,8 +93,11 @@ def RComputing(jobId, RExpression, input_binary_data):
     except:
     
         print "Error computing the job"
-        client_conn.ExecutionError(vol_session_id, jobId)
         
+    conn.close()
+    if conn.isClosed:
+        print "Rserve connection is closed"    
+     
     return output_binary_data
 
 
@@ -113,19 +115,23 @@ def compute_job(jobId, RExpression, input_binary_data):
     ##Volunteer asks to market if this user can execute this job
     ##If market validate the execution then return a token of 10 computing minutes
     
-    print("RExpression to compute:" + str(RExpression))
+    if client_conn.validateJob(vol_session_id, jobId):
+        print ("job was validated... starting computing")
     
-    t = threading.Thread(target=client_compute, args=(jobId, RExpression, input_binary_data))
-    t.start()
+        print("RExpression to compute:" + str(RExpression))
+        
+        t = threading.Thread(target=client_compute, args=(jobId, RExpression, input_binary_data))
+        t.start()
     
-    return "job was sent successfully"
+        return "job was sent successfully"
+    return "Wrong machine for the job with id:"+str(jobId)
 
 server.register_function(compute_job, 'compute_job')
 
 
 def healthCheck():
     
-    return uptime.uptime()
+    return "Alive"
 
 server.register_function(healthCheck, 'healthCheck')
 

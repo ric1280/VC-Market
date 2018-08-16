@@ -27,13 +27,14 @@ import threading
 import pyRserve
 import time
 from fileinput import filename
-from uptime import uptime
-from _mysql import NULL
+from CredibilityManager import update_credibility
+from MajorityReport import majorityReport
 
 
 #print(str(socket.gethostbyname(socket.getfqdn())))
 
 jobBuffer = dict()
+machines_for_job = dict()
 
 print "Strarting MarketServer"
 
@@ -184,6 +185,16 @@ def getMachine(client_ip, session_id):
     
 server.register_function(getMachine, 'getMachine')
 
+
+def getMachinesForJob(jobId):
+    
+    try:
+        cur.execute("""Select mid from machine_job WHERE machine_job.jobId='%s' """ % (jobId))
+        return cur.fetchall() 
+    except:
+        return "Error getting the machines for job!"
+    
+
 @clientAuth.require_login
 def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime, variables_list):
     
@@ -212,6 +223,14 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
         cur.execute("""INSERT INTO client_job(Email, jobId) VALUES (%s ,%s)""", (clientAuth.sessions[session_id]['email'], jobId))
         con.commit()
     except: 
+        con.rollback()
+        
+    try:  
+        query = "UPDATE job SET Status = 'Unbound' WHERE jobId ="+ str(jobId)
+        cur.execute(query)
+        con.commit()
+    except: 
+        return "Error executing query: "+query
         con.rollback()
         
         
@@ -332,6 +351,15 @@ def getCandidates(jobId):
     if volunteerAuth.volunteer_sessions:
         for session in volunteerAuth.volunteer_sessions:
             machine = volunteerAuth.volunteer_sessions[session]
+            
+            alreadyAssignedachines=getMachinesForJob(jobId)
+            skipThisMachine = False;
+            for mid in alreadyAssignedachines:
+                if machine["mid"] in mid:
+                    skipThisMachine=True
+                    break
+            if skipThisMachine:
+                continue
                     
             if machine['State'] == "BUSY":
                 continue
@@ -375,7 +403,7 @@ def getCandidates(jobId):
                                   "Disc"  : machine["Disc"],
                                   "RAM"  : machine["RAM"],
                                   "Price"  : machine["Price"]})
-            return job_candidates
+        return job_candidates
     
 
 @clientAuth.require_login
@@ -403,13 +431,7 @@ def linkJobVolunteer(jobId, volunteer):
     except: 
         con.rollback()
         
-    #update volunteer state to busy
-    if volunteerAuth.volunteer_sessions:
-        for session in volunteerAuth.volunteer_sessions:
-            machine = volunteerAuth.volunteer_sessions[session]
-            
-            if machine["mid"]==volunteer["mid"]:
-                machine["State"] = "BUSY"
+    
                 
                 
 
@@ -456,6 +478,14 @@ def chooseVolunteer(client_ip, session_id, jobId, volunteer):
         return valuemsg
     
     linkJobVolunteer(jobId, volunteer)
+    try: 
+        query = "UPDATE job SET Status = 'Assigned' WHERE jobId ="+ str(jobId)
+        cur.execute(query)
+        con.commit()
+    except: 
+        return "Error executing query: "+query
+        con.rollback()
+        
     return getQuiz( jobId)
     
 server.register_function(chooseVolunteer, 'chooseVolunteer')    
@@ -553,65 +583,80 @@ def startVolunteer(client_ip, session_id, port, machineName):
 server.register_function(startVolunteer, 'startVolunteer')
 
 @volunteerAuth.require_login
-def ExecutionError(client_ip ,volunteer_session, jobId):
-    
-    cur.execute("""SELECT mid FROM machine_job WHERE jobId=%s""" % jobId)
-    
-    result = cur.fetchone()
-    if result == None:
-        return "This machine does not exist or was not assigned to a volunteer"    
-       
-    if result[0] != volunteerAuth.volunteer_sessions[volunteer_session]["mid"]:  
-        return "The machine" + volunteerAuth.volunteer_sessions[volunteer_session]["mid"]+ " was not assigned to job with id" + str(jobId)
-    
-    try: 
-        query = "UPDATE machine_job SET status = 'Error' WHERE mid = "+ str(volunteerAuth.volunteer_sessions[volunteer_session]["mid"]) + " AND jobId ="+ str(jobId)
-        cur.execute(query)
-        con.commit()
+def validateJob(client_ip ,volunteer_session, jobId):
+    try:
+        cur.execute("""SELECT mid FROM machine_job WHERE jobId=%s""",  jobId)
+        machines = cur.fetchall()
     except: 
-        return "Error executing query: "+query
-        con.rollback()
-    
-    if False:
-        try:
-            cur.execute("DELETE FROM machine_job WHERE mid="+ str(volunteerAuth.volunteer_sessions[volunteer_session]["mid"]) + " AND jobId="+str(jobId))
-            con.commit()
-        except: 
-            con.rollback()
+        print "ERROR on validatejob"
+        
+    mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
+    for machine in machines:
+        if mid == machine[0]:
+            try: 
+                query = "UPDATE machine_job SET status = 'Computing' WHERE mid = "+ str(mid) + " AND jobId ="+ str(jobId)
+                cur.execute(query)
+                
+                query = "UPDATE job SET Status = 'Computing' WHERE jobId ="+ str(jobId)
+                cur.execute(query)
+                con.commit()
+            except: 
+                return "Error executing query: "+query
+                con.rollback()
+                
+                
+            volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "BUSY"
             
+            return True
         
+    
+    return False;
         
-        try:
-            query = "DELETE FROM client_job WHERE jobId="+str(jobId)
-            cur.execute(query)
-            con.commit()
-        except: 
-            con.rollback()
-         
-        try: 
-            query = "DELETE FROM job WHERE jobId="+str(jobId)
-            cur.execute(query)
-            con.commit()
-        except: 
-            con.rollback()
-        
-    volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
+    
+server.register_function(validateJob, 'validateJob')
 
-server.register_function(ExecutionError, 'ExecutionError')
 
 @volunteerAuth.require_login
 def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_input):
+    mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
+    machines = None
+    try:
+        cur.execute("""SELECT mid,status FROM machine_job WHERE jobId=%s""" % jobId)
+        machines = cur.fetchall()
+    except:
+        return "Error getting machines for the job "+ str(jobId)
+        
     
-    cur.execute("""SELECT mid FROM machine_job WHERE jobId=%s""" % jobId)
-    
-    result = cur.fetchone()
-    if result == None:
-        return "This machine does not exist or was not assigned to a volunteer"    
+    if machines == None:
+        return "There is no volunteers assigned to job "+str(jobId)    
        
-    if result[0] != volunteerAuth.volunteer_sessions[volunteer_session]["mid"]:  
-        return "The machine" + volunteerAuth.volunteer_sessions[volunteer_session]["mid"]+ " was not assigned to job with id" + str(jobId)
+    legitMachine = False
+    for entry in machines:  
+        if entry[0] == mid:  
+            legitMachine = True
+            break
+        
     
+    if not legitMachine:        
+        return "The machine" + mid+ " was not assigned to job with id:" + str(jobId)
+        
+    quorum_machines = len(machines)       
     
+    ###Get validated jobs for this job ID
+   
+  
+    machines_for_job[jobId] = dict()
+    machines_for_job[jobId][mid] = {"mid"  : mid,
+                                "status" : "Computing", 
+                                "vars" : None,
+                                "filename" : None}
+        
+    checked_jobs_machines = []
+    for machineID in machines_for_job[jobId]:
+        machine = machines_for_job[jobId][machineID]
+        if machine["status"] == "Error" or machine["status"] == "Wrong" or machine["status"] == "Success":
+            checked_jobs_machines.append(machine)
+            
         
     #Verify RData_output
     #If there is no RData_Output then there was an execution error
@@ -623,7 +668,28 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         except: 
             return "Error executing query: "+query
             con.rollback()
-    
+            
+        if quorum_machines == 1:    
+            try:
+                query = "UPDATE job SET Status = 'Error' WHERE jobId = "+ str(jobId)
+                cur.execute(query)
+                con.commit()
+            
+            except: 
+                print "Could not execute query: "+ query
+                con.rollback()
+                
+        machines_for_job[jobId][mid]["status"]= "Error"
+        checked_jobs_machines.append(machines_for_job[jobId][mid])
+        
+        if quorum_machines == checked_jobs_machines and quorum_machines > 1:
+            ##majority report
+            majorityReport(checked_jobs_machines)
+            
+            
+        
+        volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
+        return
     
     
     #connect to R
@@ -634,7 +700,7 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         return
 
     path = conn.eval('getwd()')
-    filename = str(path)+"/"+str(jobId) + "_output.RData"
+    filename = str(path)+"/"+str(jobId)+ "_"+str(mid) + "_output.RData"
     handle = open(filename, "wb")
         
     handle.write(RData_output.data)
@@ -646,6 +712,8 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
     
     #Job validation
     #criteria1 - validate the quiz variable
+    
+    machines_for_job[jobId][mid]["filename"] = filename
     
     try:
         query = """SELECT output FROM market_quiz INNER JOIN job_quiz ON market_quiz.input=job_quiz.input WHERE jobId="""+str(jobId)
@@ -675,19 +743,17 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         criteria2 = False
 
     #del jobBuffer[jobId]
+    vars = dict()
+    for var in jobBuffer[jobId]["vars"]:
+        vars[var] = conn.eval(var)
+    
+    machines_for_job[jobId][mid]["vars"] = vars
+    
     
     
     if criteria1 and criteria2:
         print "The computed job with the id "+ str(jobId) + " was successfully validated!"
-        try:
-            query = "UPDATE job SET Status = 'Success' WHERE jobId = "+ str(jobId)
-            cur.execute(query)
-            con.commit()
-        
-        except: 
-            print "Could not execute query: "+ query
-            con.rollback()
-    
+      
     
         try:
             query = """SELECT InitTime FROM job WHERE jobId= """+str(jobId)
@@ -708,25 +774,7 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
             con.rollback()
             
             
-        try:
-            #get successful computed jobs for that machine
-            mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
-            query = """SELECT scj FROM machines WHERE mid= """+str(mid)
-            cur.execute(query)
-            scj = cur.fetchone()[0]
-            
-            #This volunteer computed one more job successfully 
-            scj = scj + 1
-            f = 0.012
-            credibility = 1 - (f/scj)
-            
-            #Update credibility and scj
-            
-                   
-            query = "UPDATE machines SET scj = "+ str(scj)+", credibility = "+str(credibility)+" WHERE mid = "+ str(mid)
-            cur.execute(query)
-            con.commit()
-            
+        try: 
             query = "UPDATE machine_job SET status = 'Success' WHERE mid = "+ str(mid) + " AND jobId ="+ str(jobId)
             cur.execute(query)
             con.commit()
@@ -734,6 +782,25 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         except: 
             print "Could not execute query: "+ query
             con.rollback()
+            
+        if quorum_machines == 1:    
+            try:
+                update_credibility(cur, con, mid, "Success")
+                query = "UPDATE job SET Status = 'Success' WHERE jobId = "+ str(jobId)
+                cur.execute(query)
+                con.commit()
+            
+            except: 
+                print "Could not execute query: "+ query
+                con.rollback()
+        
+        machines_for_job[jobId][mid]["status"]= "Success"
+        checked_jobs_machines.append(machines_for_job[jobId][mid])
+        
+        if quorum_machines == checked_jobs_machines and quorum_machines > 1:
+            ##majority report
+            majorityReport(checked_jobs_machines)
+        
         
     else: 
        
@@ -742,31 +809,30 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         # credibility is updated with the new scj
         
         
-        
         try:
-            
-            mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
-            scj = 1
-            f = 0.012
-            credibility = 1 - (f/scj)
-            
-            #Update credibility and scj
-                
-            query = "UPDATE machines SET scj = "+ str(scj)+", credibility = "+str(credibility)+" WHERE mid = "+ str(mid)
-            cur.execute(query)
-            con.commit()
-            
-             
             query = "UPDATE machine_job SET status = 'Wrong' WHERE mid = "+ str(mid) + " AND jobId ="+ str(jobId)
             cur.execute(query)
             con.commit()
-        
-        
-        except: 
+        except:
             print "Could not execute query: "+ query
             con.rollback()
         
+        if quorum_machines == 1:
+            try:
+                update_credibility(cur, con, mid, "Wrong") 
+                query = "UPDATE job SET Status = 'Wrong' WHERE jobId = "+ str(jobId)
+                cur.execute(query)
+                con.commit()            
+            except: 
+                print "Could not execute query: "+ query
+                con.rollback()
+            
+        machines_for_job[jobId][mid]["status"]= "Wrong"
+        checked_jobs_machines.append(machines_for_job[jobId][mid])
         
+        if quorum_machines == checked_jobs_machines and quorum_machines > 1:
+            ##majority report
+            majorityReport(checked_jobs_machines)
         
     conn.close()
     if conn.isClosed:
@@ -872,6 +938,7 @@ def healthCheck():
                     con.rollback()
     
                 
+
         
 
   

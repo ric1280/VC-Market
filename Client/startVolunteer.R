@@ -13,7 +13,12 @@ source("client_config.R")
 getUsers()
 signup(Email, Password)
 login(Email, Password)
-addMachine(Machine_Name, Machine_CPU, Machine_Hard_Disc, Machine_RAM, Machine_Price)
-getMachine()
 
-startVolunteer(Machine_Name)
+for(machine in Machines){
+	
+	addMachine(machine[[1]], machine[[2]], machine[[3]], machine[[4]], machine[[5]])
+				#getMachine()
+	
+	startVolunteer(machine[[1]])
+}
+

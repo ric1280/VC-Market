@@ -77,6 +77,13 @@ submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression,
 	}
 }
 
+majorityReport <- function(jobId, RExpression, quorum, RData_fileName) 
+{
+		
+	returning_msg <- python.call("majorityReport", client_session_id, jobId, RExpression, quorum, RData_fileName)
+    print (returning_msg)
+}
+
 getJobs <- function(){
 	job_list <- python.call("getJobs", client_session_id)
 	

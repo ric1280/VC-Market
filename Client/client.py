@@ -145,6 +145,9 @@ def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
     ##There is no need to submit the job because this option can only be activated to complain / validate a previous computed job
     ##So the job is already on database
     
+    jobId = long(jobId)
+    
+    
     volunteers = s.getVolunteersForJob(session_id, jobId)
     if(volunteers=="error"):
         return "wrong jobId - you don't have owner permissions to that job"

@@ -20,38 +20,89 @@ compute <- function(mainexpression, fileName,userEnvironment=parent.frame(), mod
 	return(returnValue)
 }
 
+compute_replication <- function(jobId, RExpression, quorum, fileName){
 
-getUsers()
-signup(Email, Password)
-login(Email, Password)
-
-writeLines("\n################################################################################\n")
-writeLines("These are the R files on your current directory:\n")
-writeLines(list.files(pattern = "\\.R$"))
-
-writeLines("\n################################################################################\n")
-
-
-
-if(interactive()){
-	print("Choose a file to compute!")
-	filename <- readline("filename: ")
-	print(filename)
+	##Save environment to send to volunteer 
 	
-	con = file(filename, "r")
-	fileTxt = readLines(con)
-	code <- ""
-	for(line in fileTxt){
-		code = paste(code, line, sep="\n ")
-	}
-	
-	
-	close(con)
-
-	compute({code}, filename)
-	
-	
+	RData_filename = paste(fileName,"_input.RData", sep="")
+	save.image(RData_filename)
+	majorityReport(jobId, RExpression, quorum, RData_filename) 
 }
+
+single_remote_execution <- function(){
+	getUsers()
+	signup(Email, Password)
+	login(Email, Password)
+
+
+	writeLines("\n################################################################################\n")
+	writeLines("These are the R files on your current directory:\n")
+	writeLines(list.files(pattern = "\\.R$"))
+	
+	writeLines("\n################################################################################\n")
+	
+	if(interactive()){
+		print("Choose a file to compute!")
+		filename <- readline("filename: ")
+		print(filename)
+		
+		con = file(filename, "r")
+		fileTxt = readLines(con)
+		code <- ""
+		for(line in fileTxt){
+			code = paste(code, line, sep="\n ")
+		}
+		
+		
+		close(con)
+	
+		compute({code}, filename)
+	}
+
+}
+
+replication_remote_execution <- function(){
+	
+	getUsers()
+	signup(Email, Password)
+	login(Email, Password)
+	
+	writeLines("\n################################################################################\n")
+	writeLines("These are the R files on your current directory:\n")
+	writeLines(list.files(pattern = "\\.R$"))
+	
+	writeLines("\n################################################################################\n")
+
+	if(interactive()){
+		print("Choose a file to compute!")
+		filename <- readline("filename: ")
+		print(filename)
+		
+		con = file(filename, "r")
+		fileTxt = readLines(con)
+		code <- ""
+		for(line in fileTxt){
+			code = paste(code, line, sep="\n ")
+		}
+		
+		
+		close(con)
+	
+		getJobs()
+		print("Choose a jobId to recompute with replication!")
+		jobId <- readline("jobId: ")
+		
+		compute_replication(jobId, {code}, 3, filename)
+	}
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -84,4 +84,4 @@ def store_quiz ( input , output):
             print "Could not execute query: "+ query
             con.rollback()
 
-populate(50)
+populate(100)
