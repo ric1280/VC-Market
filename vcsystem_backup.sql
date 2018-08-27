@@ -34,7 +34,7 @@ CREATE TABLE `availability` (
 
 LOCK TABLES `availability` WRITE;
 /*!40000 ALTER TABLE `availability` DISABLE KEYS */;
-INSERT INTO `availability` VALUES (1,211),(1,66.6570000648),(1,553.57400012),(1,457.099999905),(1,316.815000057),(1,344.438000202),(1,414.376999855),(3,492.578000069);
+INSERT INTO `availability` VALUES (1,211),(1,66.6570000648),(1,553.57400012),(1,457.099999905),(1,316.815000057),(1,344.438000202),(1,414.376999855),(3,492.578000069),(2,288.690000057);
 /*!40000 ALTER TABLE `availability` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -61,7 +61,6 @@ CREATE TABLE `client_job` (
 
 LOCK TABLES `client_job` WRITE;
 /*!40000 ALTER TABLE `client_job` DISABLE KEYS */;
-INSERT INTO `client_job` VALUES ('Test@gmail.com',1),('Test@gmail.com',2),('Test@gmail.com',3),('Test@gmail.com',4),('Test@gmail.com',5),('Test@gmail.com',6),('Test@gmail.com',7),('Test@gmail.com',8),('Test@gmail.com',9),('Test@gmail.com',10),('Test@gmail.com',11),('Test@gmail.com',12),('Test@gmail.com',13),('Test@gmail.com',14),('Test@gmail.com',15),('Test@gmail.com',16),('Test@gmail.com',17),('Test@gmail.com',18),('Test@gmail.com',19),('Test@gmail.com',20),('Test@gmail.com',21),('Test@gmail.com',22),('Test@gmail.com',23),('Test@gmail.com',24),('Test@gmail.com',25),('Test@gmail.com',26),('Test@gmail.com',27),('Test@gmail.com',28),('Test@gmail.com',29),('Test@gmail.com',30),('Test@gmail.com',31),('Test@gmail.com',32),('Test@gmail.com',33),('Test@gmail.com',34),('Test@gmail.com',35),('Test@gmail.com',36),('Test@gmail.com',37),('Test@gmail.com',38),('Test@gmail.com',39),('Test@gmail.com',40),('Test@gmail.com',41),('Test@gmail.com',42),('Test@gmail.com',43);
 /*!40000 ALTER TABLE `client_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -96,7 +95,6 @@ CREATE TABLE `job` (
 
 LOCK TABLES `job` WRITE;
 /*!40000 ALTER TABLE `job` DISABLE KEYS */;
-INSERT INTO `job` VALUES (1,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533648664.395,NULL,'prime_factorization.R',0),(2,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533664563.11,NULL,'prime_factorization.R',0),(3,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533665950.29,NULL,'prime_factorization.R',0),(4,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533681794.902,NULL,'fibonacci.R',0),(5,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533682035.059,NULL,'fibonacci.R',0),(6,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533682096.396,NULL,'fibonacci.R',0),(7,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533682630.747,NULL,'fibonacci.R',0),(8,0.6544,300000000,4096,1024,80.1050000191,'Success',6,2700,1533682679.566,'C:/Users/ricar/8_output.RData','fibonacci.R',0),(9,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533682868.61,NULL,'fibonacci.R',0),(10,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533683136.195,NULL,'fibonacci.R',0),(11,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533683438.662,NULL,'fibonacci.R',0),(12,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533684515.835,NULL,'fibonacci.R',0),(13,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533684892.058,NULL,'fibonacci.R',0),(14,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533685078.087,NULL,'fibonacci.R',0),(15,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533685687.286,NULL,'fibonacci.R',0),(16,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533686186.967,NULL,'fibonacci.R',0),(17,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533686534.903,NULL,'fibonacci.R',0),(18,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533687692.861,NULL,'fibonacci.R',0),(19,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533687891.341,NULL,'fibonacci.R',0),(20,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533688112.36,NULL,'fibonacci.R',0),(21,0.6544,300000000,4096,1024,0,'NULL',6,2700,1533688184.324,NULL,'fibonacci.R',0),(22,0.6544,300000000,4096,1024,0,'Assigned',6,2700,1534246457.87,NULL,'prime_factorization.R',0),(23,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534246722.304,NULL,'prime_factorization.R',0),(24,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534247165.619,NULL,'fibonacci.R',0),(25,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534247381.067,NULL,'fibonacci.R',0),(26,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534247485.694,NULL,'fibonacci.R',0),(27,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534247654.816,NULL,'prime_factorization.R',0),(28,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534248200.16,NULL,'prime_factorization.R',0),(29,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534248301.449,NULL,'fibonacci.R',0),(30,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534248465.155,NULL,'fibonacci.R',0),(31,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534250082.834,NULL,'fibonacci.R',0),(32,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534250180.394,NULL,'prime_factorization.R',0),(33,0.6544,300000000,4096,1024,117.960000038,'Success',6,2700,1534250435.986,'C:/Users/ricar/33_output.RData','prime_factorization.R',0),(34,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534422074.294,NULL,'prime_factorization.R',0),(35,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534422884.686,NULL,'prime_factorization.R',0),(36,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534423197.414,NULL,'prime_factorization.R',0),(37,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534423646.988,NULL,'prime_factorization.R',0),(38,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534423828.248,NULL,'prime_factorization.R',0),(39,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534424229.114,NULL,'prime_factorization.R',0),(40,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534424893.413,NULL,'prime_factorization.R',0),(41,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534425484.256,NULL,'prime_factorization.R',0),(42,0.6544,300000000,4096,1024,0,'Computing',6,2700,1534425665.554,NULL,'prime_factorization.R',0),(43,0.6544,300000000,4096,1024,184.108999968,'Assigned',6,2700,1534426230.178,'C:/Users/ricar/43_1_output.RData','prime_factorization.R',0);
 /*!40000 ALTER TABLE `job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -122,7 +120,6 @@ CREATE TABLE `job_quiz` (
 
 LOCK TABLES `job_quiz` WRITE;
 /*!40000 ALTER TABLE `job_quiz` DISABLE KEYS */;
-INSERT INTO `job_quiz` VALUES (23,2635),(14,10659),(18,11874),(21,12847),(16,18946),(36,19944),(15,22568),(22,24729),(37,24729),(9,25181),(19,30159),(29,38141),(10,38954),(31,42742),(39,45929),(27,46935),(33,48677),(42,50012),(13,52915),(34,53164),(28,53210),(43,53210),(17,55370),(26,55370),(32,56693),(41,57872),(12,58977),(7,60157),(30,69016),(24,73191),(20,73889),(35,74753),(25,76081),(8,84819),(11,88311),(40,88719),(38,91334);
 /*!40000 ALTER TABLE `job_quiz` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -150,7 +147,6 @@ CREATE TABLE `machine_job` (
 
 LOCK TABLES `machine_job` WRITE;
 /*!40000 ALTER TABLE `machine_job` DISABLE KEYS */;
-INSERT INTO `machine_job` VALUES (1,2,'Error'),(1,3,NULL),(1,4,NULL),(1,5,NULL),(1,6,NULL),(1,7,'Error'),(1,8,'Success'),(1,9,'Error'),(1,10,'Error'),(1,11,NULL),(1,12,NULL),(1,13,NULL),(1,14,NULL),(1,15,NULL),(1,16,'Error'),(1,17,NULL),(1,18,'Error'),(1,19,NULL),(1,20,'Error'),(1,21,NULL),(1,22,NULL),(1,23,'Computing'),(1,24,'Computing'),(1,25,'Computing'),(1,26,'Error'),(1,27,'Computing'),(1,28,'Computing'),(1,29,'Computing'),(1,30,'Computing'),(1,31,'Error'),(1,32,'Computing'),(1,33,'Success'),(1,34,'Computing'),(1,35,'Computing'),(1,39,'Computing'),(1,41,'Computing'),(1,43,'Success'),(2,37,'Computing'),(2,40,'Computing'),(2,43,'Computing'),(3,36,'Computing'),(3,38,'Computing'),(3,42,'Computing'),(3,43,NULL);
 /*!40000 ALTER TABLE `machine_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -180,7 +176,7 @@ CREATE TABLE `machines` (
 
 LOCK TABLES `machines` WRITE;
 /*!40000 ALTER TABLE `machines` DISABLE KEYS */;
-INSERT INTO `machines` VALUES (1,'Machine2',500000000,100000,2048,5,4,0.997),(2,'Machine1',500000000,100000,2048,5,1,0.988),(3,'Machine3',500000000,100000,2048,5,1,0.988);
+INSERT INTO `machines` VALUES (1,'Machine2',500000000,100000,2048,5,10,0.9988),(2,'Machine1',500000000,100000,2048,5,3,0.996),(3,'Machine3',500000000,100000,2048,5,7,0.998286);
 /*!40000 ALTER TABLE `machines` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -269,4 +265,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-08-16 22:24:46
+-- Dump completed on 2018-08-27 13:27:06

@@ -246,6 +246,9 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
                         }
      
 
+    
+    machines_for_job[jobId] = dict()
+    
     return jobId
 
 server.register_function(submitJob, 'submitJob')
@@ -437,33 +440,46 @@ def linkJobVolunteer(jobId, volunteer):
 
 def getQuiz(jobId):
                 
-    #Select a random quiz
-    
-    try:
-        query = """SELECT input FROM market_quiz
-                ORDER BY RAND()
-                LIMIT 1"""
-        cur.execute(query)   
-        quiz_input = cur.fetchone()[0]
-             
-    except:
-        return "Error executing query: "+query
                 
-    
-    quiz = """\n collatz <- function(n, acc=0) {
-                if(n==1) return(acc);
-                collatz(ifelse(n%%2==0, n/2, 3*n +1), acc+1)
-                }
-                
-                quiz<-collatz("""+ str(int(quiz_input))+")"
-                
-    
-    ### Link the quiz to jobId
+    #Verify if there is a quiz for that job            
     try: 
-        cur.execute("""insert into job_quiz(jobId, input) values (%s ,%s)""", (jobId, quiz_input))
-        con.commit()
+        cur.execute("""select input from job_quiz WHERE jobId=%s""", (jobId))
+        quiz_input = cur.fetchone()
+        if quiz_input:
+            quiz_input = quiz_input[0]
     except: 
-        con.rollback()
+        return "Error getting the quiz for job"
+                
+    if not quiz_input:
+        #Select a random quiz
+        try:
+            query = """SELECT input FROM market_quiz
+                    ORDER BY RAND()
+                    LIMIT 1"""
+            cur.execute(query)   
+            quiz_input = cur.fetchone()[0]
+                 
+        except:
+            return "Error executing query: "+query
+                    
+        
+     
+                    
+        
+        ### Link the quiz to jobId
+        try: 
+            cur.execute("""insert into job_quiz(jobId, input) values (%s ,%s)""", (jobId, quiz_input))
+            con.commit()
+        except: 
+            con.rollback()
+        
+        
+    quiz = """\n collatz <- function(n, acc=0) {
+            if(n==1) return(acc);
+            collatz(ifelse(n%%2==0, n/2, 3*n +1), acc+1)
+            }
+            
+            quiz<-collatz("""+ str(int(quiz_input))+")"
                
         
     
@@ -643,9 +659,8 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
     quorum_machines = len(machines)       
     
     ###Get validated jobs for this job ID
-   
-  
-    machines_for_job[jobId] = dict()
+    
+    
     machines_for_job[jobId][mid] = {"mid"  : mid,
                                 "status" : "Computing", 
                                 "vars" : None,
@@ -682,7 +697,7 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         machines_for_job[jobId][mid]["status"]= "Error"
         checked_jobs_machines.append(machines_for_job[jobId][mid])
         
-        if quorum_machines == checked_jobs_machines and quorum_machines > 1:
+        if quorum_machines == len(checked_jobs_machines) and quorum_machines > 1:
             ##majority report
             majorityReport(checked_jobs_machines)
             
@@ -797,9 +812,12 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         machines_for_job[jobId][mid]["status"]= "Success"
         checked_jobs_machines.append(machines_for_job[jobId][mid])
         
-        if quorum_machines == checked_jobs_machines and quorum_machines > 1:
+        if quorum_machines == len(checked_jobs_machines) and quorum_machines > 1:
             ##majority report
-            majorityReport(checked_jobs_machines)
+            checked_jobs_machines = majorityReport(checked_jobs_machines)
+            
+            
+            
         
         
     else: 
@@ -830,9 +848,9 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         machines_for_job[jobId][mid]["status"]= "Wrong"
         checked_jobs_machines.append(machines_for_job[jobId][mid])
         
-        if quorum_machines == checked_jobs_machines and quorum_machines > 1:
+        if quorum_machines == len(checked_jobs_machines) and quorum_machines > 1:
             ##majority report
-            majorityReport(checked_jobs_machines)
+            checked_jobs_machines = majorityReport(checked_jobs_machines)
         
     conn.close()
     if conn.isClosed:

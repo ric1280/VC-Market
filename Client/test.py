@@ -10,7 +10,11 @@ import os
 import xmlrpclib
 import subprocess
 
-
+list1 = [3,4,5]
+for i in range(0, len(list1)):
+    list1[i] = list1[i] +1
+    
+print list1
 
 
 def RComputing():

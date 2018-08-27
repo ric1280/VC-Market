@@ -149,6 +149,8 @@ def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
     
     
     volunteers = s.getVolunteersForJob(session_id, jobId)
+    
+    print "get volunteers done"
     if(volunteers=="error"):
         return "wrong jobId - you don't have owner permissions to that job"
     
@@ -166,7 +168,7 @@ def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
             input_binary_data = xmlrpclib.Binary(handle.read())
         
         for i in range(0, quorum-1):
-            
+            print "choosing volunteer"
             chosen_volunteer = volunteers[i]
             quiz = s.chooseVolunteer(session_id, jobId, chosen_volunteer)
             
