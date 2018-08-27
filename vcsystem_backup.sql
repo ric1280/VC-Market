@@ -134,6 +134,7 @@ CREATE TABLE `machine_job` (
   `mid` int(11) NOT NULL,
   `jobId` int(11) NOT NULL,
   `status` varchar(255) DEFAULT NULL,
+  `RDataPath` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`mid`,`jobId`),
   KEY `jobId` (`jobId`),
   CONSTRAINT `machine_job_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `machines` (`mid`),
@@ -265,4 +266,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-08-27 13:27:06
+-- Dump completed on 2018-08-27 17:39:53

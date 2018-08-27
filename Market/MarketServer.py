@@ -631,6 +631,37 @@ def validateJob(client_ip ,volunteer_session, jobId):
     
 server.register_function(validateJob, 'validateJob')
 
+def updateVolunteersComputingData(jobId, checked_jobs_machines):
+    for machine in checked_jobs_machines:
+        try:
+            update_credibility(cur, con, machine["mid"], machine["status"])
+            query = "UPDATE machine_job SET Status = '"+machine["status"]+"' WHERE jobId = "+ str(jobId)
+            cur.execute(query)
+            
+            query = "UPDATE machine_job SET RDataPath = '"+ str(machine["filename"])+"' WHERE jobId = "+ str(jobId)
+            cur.execute(query)
+                
+            con.commit()
+        
+        except: 
+            print "Could not execute query: "+ query
+            con.rollback()
+            
+        if machine["status"] == "Success":
+             #Store Rdata path
+    
+            try:
+                query = "UPDATE job SET RDataPath = '"+ str(machine["filename"])+"' WHERE jobId = "+ str(jobId)
+                cur.execute(query)
+                con.commit()
+                
+            except:
+                print "Could not execute query: "+ query
+                con.rollback()
+            
+            
+    
+
 
 @volunteerAuth.require_login
 def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_input):
@@ -855,18 +886,6 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
     conn.close()
     if conn.isClosed:
         print "Rserve connection is closed"
-        
-    
-    #Store Rdata path
-    
-    try:
-        query = "UPDATE job SET RDataPath = '"+ str(filename)+"' WHERE jobId = "+ str(jobId)
-        cur.execute(query)
-        con.commit()
-        
-    except:
-        print "Could not execute query: "+ query
-        con.rollback()
     
     #update volunteer state to FREE
     volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
