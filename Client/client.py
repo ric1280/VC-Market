@@ -78,10 +78,10 @@ def startVolunteer(session_id,machineName):
 
 #startVolunteer("caipirinha")
 #s.submitJob(session_id, 6, 2700, "NULL", "NULL", 4096, 1024)
-def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName, variables_list):
+def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName):
     if session_id:
         print "Volunteers list for the job: "
-        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime, variables_list)
+        jobId = s.submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime, RExpression)
         
         volunteers = s.getVolunteersForJob(session_id, jobId)
         if(volunteers=="error"):
@@ -94,11 +94,9 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
             
             
             chosen_one = volunteers[0]
-            quiz = s.chooseVolunteer(session_id, jobId,chosen_one)
             
-            ###Join quiz on expression
-            
-            RExpression = RExpression + quiz
+            #get new RExpression with quiz inside
+            RExpression = s.chooseVolunteer(session_id, jobId,chosen_one)
             
             vol_ip = chosen_one["ip"]
             vol_port = chosen_one["port"]
@@ -138,7 +136,7 @@ def submitJob(session_id, price, deadline, credibility, CPU, disc, RAM, RExpress
 #except KeyboardInterrupt:
 #   print >> pickle.sys.stderr, 'Dummy Volunteers Interrupted: "Keyboard Interrupt"'
 
-def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
+def majorityReport(session_id, jobId, quorum, RData_fileName):
     ## the quorum can be any odd number >= 3 
     ## For example 3, 5, 7, 9, etc.
     
@@ -161,7 +159,7 @@ def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
         
         
         chosen_volunteers = []
-        quizes = []
+        
         
         
         with open(RData_fileName, "rb") as handle:
@@ -170,12 +168,11 @@ def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
         for i in range(0, quorum-1):
             print "choosing volunteer"
             chosen_volunteer = volunteers[i]
-            quiz = s.chooseVolunteer(session_id, jobId, chosen_volunteer)
+            RExpression = s.chooseVolunteer(session_id, jobId, chosen_volunteer)
             
             chosen_volunteers.append(chosen_volunteer)
-            quizes.append(quiz)
-            ###Join quiz on expression
-            Expression = RExpression + quiz
+            
+         
     
             vol_ip = chosen_volunteer["ip"]
             vol_port = chosen_volunteer["port"]
@@ -183,7 +180,7 @@ def majorityReport(session_id, jobId, RExpression, quorum, RData_fileName):
             vol_conn = xmlrpclib.ServerProxy('http://'+str(vol_ip)+':'+str(vol_port))
             print "sending job to volunteer at:  "+str(vol_ip)+':'+str(vol_port)
             
-            print vol_conn.compute_job(jobId, Expression, input_binary_data)
+            print vol_conn.compute_job(jobId, RExpression, input_binary_data)
          
         
         try:

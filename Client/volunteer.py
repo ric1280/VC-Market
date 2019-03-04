@@ -15,9 +15,9 @@ import pyRserve
 
 
 
-client_conn = xmlrpclib.ServerProxy('http://localhost:11111',allow_none=True)
+server_conn = xmlrpclib.ServerProxy('http://localhost:11111',allow_none=True)
 
-session_id = client_conn.checkVolunteer(sys.argv[2], sys.argv[1])
+session_id = server_conn.checkVolunteer(sys.argv[2], sys.argv[1])
 
 if(session_id):
     sys.exit(0)
@@ -28,7 +28,7 @@ server.register_introspection_functions()
 listenner_port = server.server_address[1];
 print "Volunteer "+ sys.argv[1] + " listenning on port: "+ str(listenner_port)
 
-vol_session_id = client_conn.startVolunteer(sys.argv[2], listenner_port, sys.argv[1])
+vol_session_id = server_conn.startVolunteer(sys.argv[2], listenner_port, sys.argv[1])
 
 
 
@@ -65,7 +65,8 @@ def RComputing(jobId, RExpression, input_binary_data):
         
         print "input RData file loaded"
          
-        
+        print("Expression to compute")
+        print(str(RExpression))
         print conn.eval(str(RExpression))
         print("Expression computed")
         
@@ -105,8 +106,8 @@ def client_compute(jobId, RExpression, input_binary_data):
             
     output_binary_data = RComputing(jobId, RExpression, input_binary_data)    
     
-    client_conn.checkJobResult(vol_session_id, jobId, output_binary_data, input_binary_data)
-
+    server_conn.checkJobResult(vol_session_id, jobId, output_binary_data, input_binary_data)
+    
 
 #threadBandwidthEstimator = startBW()
 def compute_job(jobId, RExpression, input_binary_data):
@@ -115,7 +116,7 @@ def compute_job(jobId, RExpression, input_binary_data):
     ##Volunteer asks to market if this user can execute this job
     ##If market validate the execution then return a token of 10 computing minutes
     
-    if client_conn.validateJob(vol_session_id, jobId):
+    if server_conn.validateJob(vol_session_id, jobId):
         print ("job was validated... starting computing")
     
         print("RExpression to compute:" + str(RExpression))

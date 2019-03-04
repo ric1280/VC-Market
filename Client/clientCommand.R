@@ -7,7 +7,7 @@
 suppressWarnings(library("rPython"))
 
 python.load("../Client/client.py")
-python.load("../Client/codeParser.py")
+
 
 
 ###############################COMMANDS################################
@@ -61,12 +61,8 @@ startVolunteer <- function(machineName)
 
 submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName) 
 {
-	
-	variables_list <- python.call("getVariablesfromCode", RExpression)
-	print(paste("variables list:", variables_list))
-	
-	
-	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName, variables_list)
+		
+	returning_msg <- python.call("submitJob", client_session_id, price, deadline, credibility, CPU, disc, RAM, RExpression, fileName, meanUptime, RData_fileName)
 	if(returning_msg == "Job executed successfully"){
 		load('output.RData', envir=call_env)
 		print("Job loaded successfully")
@@ -77,14 +73,18 @@ submitJob <- function(price, deadline, credibility, CPU, disc, RAM, RExpression,
 	}
 }
 
-majorityReport <- function(jobId, RExpression, quorum, RData_fileName) 
+majorityReport <- function(jobId, quorum, RData_fileName) 
 {
 		
-	returning_msg <- python.call("majorityReport", client_session_id, jobId, RExpression, quorum, RData_fileName)
+	returning_msg <- python.call("majorityReport", client_session_id, jobId, quorum, RData_fileName)
     print (returning_msg)
 }
 
 getJobs <- function(){
+	signup(Email, Password)
+	login(Email, Password)
+	
+	
 	job_list <- python.call("getJobs", client_session_id)
 	
 	if(length(job_list) == 0){
@@ -113,6 +113,9 @@ getJobs <- function(){
 
 loadJob <- function(jobId){
 	#Check if the RData file already exists on client side
+	signup(Email, Password)
+	login(Email, Password)
+	
 	
 	file_name <- paste(jobId,'_output.RData',sep="")
 	if (!file.exists(file_name)) {

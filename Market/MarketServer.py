@@ -29,18 +29,25 @@ import time
 from fileinput import filename
 from CredibilityManager import update_credibility
 from MajorityReport import majorityReport
+import codeParser
+import code
 
 
 #print(str(socket.gethostbyname(socket.getfqdn())))
 
+
+##### job buffer has the recently created jobs #####
 jobBuffer = dict()
+
+##### machines_for_job is the candidates list of volunteer machines to compute a job ####
 machines_for_job = dict()
 
 print "Strarting MarketServer"
 
 try:
+    
+    ####Connection to database
     con = mdb.connect('localhost', 'user', '1234', 'vcsystem');
-
     cur = con.cursor()
  
         
@@ -53,7 +60,7 @@ except mdb.Error as e:
     print ("Error %d: %s" % (e.args[0],e.args[1]))
     sys.exit(1)
 
-
+####Injected RequestHandler to return the IP address of the request sender
 class HackyRequestHandler(SimpleXMLRPCRequestHandler):
     #def __init__(self, req, addr, server):
     #    self.client_ip, self.client_port = addr
@@ -76,12 +83,8 @@ class HackyRequestHandler(SimpleXMLRPCRequestHandler):
 server = SimpleXMLRPCServer(("0.0.0.0", 11111), requestHandler=HackyRequestHandler, allow_none=True)
 server.register_introspection_functions()
 
-# Register pow() function; this will use the value of
-# pow.__name__ as the name, which is just 'pow'.
-#server.register_function(pow)
 
-# Register a function under a different name
-
+####Remote Method: Registers a user if not exists
 def regist_user(client_ip, email, password):
         #Check if user already exists
         try:
@@ -104,7 +107,7 @@ server.register_function(regist_user, 'signup')
 
 
 
-
+####Remote Method: login an existing user with email + password
 def login(client_ip, email, password):
  
     cur.execute("""SELECT Password FROM Users WHERE Email='%s'""" % email)
@@ -119,6 +122,7 @@ def login(client_ip, email, password):
     return "Wrong password, try again!"
 server.register_function(login, 'login')
 
+####Remote Method - get a list of registered users - Only for debug purpose
 def getUsers(client_ip):
     print(client_ip)
     cur.execute("""SELECT * FROM Users""")
@@ -128,20 +132,23 @@ def getUsers(client_ip):
 
 server.register_function(getUsers, 'getUsers')
 
+
+####Remote Method: A user call this function to setup his machine as a volunteer machine
 @clientAuth.require_login
 def addMachine(client_ip,session_id, Name, CPU, Disc, RAM, Price):
     
-  
+    #Validate user session id
     Email = clientAuth.session_to_email(session_id)
     if not Email:
         return "Wrong session_id, please login again!"
     
+    #Validate if the machine already exists
     try:
         cur.execute("""Select * from UserMachines INNER JOIN Machines ON UserMachines.mid=Machines.mid WHERE UserMachines.Email='%s' AND Machines.NAME='%s'""" % (Email, Name))
         if cur.fetchone() != None:
             return "Machine already exists!"
     except:
-        return "Machine is already registed!"
+        return "Machine is already registered!"
     
     try:
         cur.execute("""SELECT COUNT(NAME) FROM Machines""")
@@ -173,6 +180,8 @@ def addMachine(client_ip,session_id, Name, CPU, Disc, RAM, Price):
 
 server.register_function(addMachine, 'addMachine')
 
+
+####Remote Method: get all machine(s) data associated with the user
 @clientAuth.require_login
 def getMachine(client_ip, session_id):
     Email = clientAuth.session_to_email(session_id)
@@ -185,7 +194,7 @@ def getMachine(client_ip, session_id):
     
 server.register_function(getMachine, 'getMachine')
 
-
+####Remote Method: get machine(s) associated with a job
 def getMachinesForJob(jobId):
     
     try:
@@ -195,36 +204,59 @@ def getMachinesForJob(jobId):
         return "Error getting the machines for job!"
     
 
+
+####Remote Method: Method used by the user to register a new job to be computed on a volunteer machine
 @clientAuth.require_login
-def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime, variables_list):
+def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RAM, fileName, meanUptime, code):
+    
+    # price: price that the client is willing to pay
+    # deadline: maximum time acceptable for the job completion
+    # credibility: minimum credibility requested by the client
+    # CPU: minimum CPU power for the volunteer machine
+    # disc: minimum disc size for the volunteer machine
+    # RAM: minimum ram size for the volunteer machine
+    # filename: RScript filename to be computed
+    # meanUptime: minimum up-time requested by the client
+    # code: RScript source code to be executed on a volunteer machine  
+    
+    
+    #Validate user session id
+    Email = clientAuth.session_to_email(session_id)
+    if not Email:
+        return "Wrong session_id, please login again!"
     
     jobId=1
     try:
+        
+        ###get next jobId to create a new job
         cur.execute("""SELECT COUNT(jobId) FROM job""")
         jobId = int(cur.fetchone()[0]) + 1
         
     except:
         return "Wrong sql query: SELECT COUNT(jobId) FROM job!"    
     
+    
+    ###Insert new job on DB
     try:
         
         if(meanUptime=="NULL"):
             meanUptime = 0
         initTime = time.time()
-        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline, InitTime, file, MeanUptime) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline, initTime, fileName, meanUptime))
+        cur.execute("""INSERT INTO Job(jobId, credibility, CPU, Disc, RAM, ExecTime, Status, Price, Deadline, InitTime, file, MeanUptime, code) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (jobId, credibility, CPU, disc, RAM, 0, "NULL", price, deadline, initTime, fileName, meanUptime, code))
         con.commit()
     
     except: 
         print "Could not insert job data into DB"
         con.rollback()
     
-    
+    ###Insert the relationship between job and its creator
     try:
-        cur.execute("""INSERT INTO client_job(Email, jobId) VALUES (%s ,%s)""", (clientAuth.sessions[session_id]['email'], jobId))
+        cur.execute("""INSERT INTO client_job(Email, jobId) VALUES (%s ,%s)""", (Email, jobId))
         con.commit()
     except: 
         con.rollback()
         
+    ####Set job status to unbound because there are no volunteers associated to it
     try:  
         query = "UPDATE job SET Status = 'Unbound' WHERE jobId ="+ str(jobId)
         cur.execute(query)
@@ -233,8 +265,9 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
         return "Error executing query: "+query
         con.rollback()
         
-        
-    Email = clientAuth.session_to_email(session_id)
+    #### Parse assigned variables from the code
+    #### Useful for code execution validation
+    variables_list = codeParser.getVariablesfromCode(code)
     
     if not isinstance(variables_list, list):
         aux_list = list()
@@ -244,15 +277,18 @@ def submitJob(client_ip, session_id, price, deadline, credibility, CPU, disc, RA
     jobBuffer[jobId] = {"Email"  : Email,
                         "vars": variables_list
                         }
-     
-
     
+    
+    
+    #### initialize machines for job for the new created job
     machines_for_job[jobId] = dict()
     
     return jobId
 
 server.register_function(submitJob, 'submitJob')
 
+
+#### Remote method used to rollback a created job
 @clientAuth.require_login
 def abortJob(client_ip, session_id, jobId):
     
@@ -274,36 +310,13 @@ def abortJob(client_ip, session_id, jobId):
     
 server.register_function(abortJob, 'abortJob')
 
- 
+####Local Method used to check if a client is the owner for a given job
 def checkClientOwnership(session_id, jobId):    
     #Job owner's email
     Email = clientAuth.session_to_email(session_id)
     
     #Validate if the client is owner of job
-    query = "Select jobId FROM client_job WHERE Email='"+str(Email)+"'"
-    try:
-        cur.execute(query)
-        jobIds = cur.fetchall()
-        
-    except:
-        return "Wrong sql query: "+ query    
-    
-    #Check if the user has registered this job
-    jobMatching = False
-    for job in jobIds:
-        if jobId in job:
-            jobMatching = True
-            
-    if not jobMatching:
-        return "error"
-    
-    return "OK"   
-
-def clientAllocationCheck(session_id, jobId):    
-    #Job owner's email
-    Email = clientAuth.session_to_email(session_id)
-    
-    #Get number of machines 
+    #Get all jobs submitted by this client
     query = "Select jobId FROM client_job WHERE Email='"+str(Email)+"'"
     try:
         cur.execute(query)
@@ -324,6 +337,7 @@ def clientAllocationCheck(session_id, jobId):
     return "OK"   
 
 
+####Local method used to calculate volunteer mean uptime. This value is the average of all uptime records
 def calcVolunteerMeanUptime(uptimes):
     
     meanUptime = 0
@@ -333,7 +347,10 @@ def calcVolunteerMeanUptime(uptimes):
     meanUptime  = meanUptime / len(uptimes)
     return meanUptime
 
+####Local Method to filter out and get all the candidates for a certain job
 def getCandidates(jobId):
+    
+    ###Get all data related to the job
     query = "SELECT * FROM job WHERE jobId="+str(jobId)
     try:
         cur.execute(query)
@@ -341,7 +358,8 @@ def getCandidates(jobId):
         
     except:
         return "Wrong sql query: "+ query
-
+    
+    ###Place the data into variables for a clean reading
     price = jobData[7]
     deadline = jobData[8]
     credibility = jobData[1]
@@ -350,12 +368,19 @@ def getCandidates(jobId):
     RAM = jobData[4]
     meanUptime = jobData[12]
      
+    
+    ###Initialize the list of job_candidates 
     job_candidates = []
     if volunteerAuth.volunteer_sessions:
+        
+        ### Search for all online volunteer machines
         for session in volunteerAuth.volunteer_sessions:
             machine = volunteerAuth.volunteer_sessions[session]
             
+            ### Get the machines associated with this job. Can be more than one if the user submit a job as a replicated execution
             alreadyAssignedachines=getMachinesForJob(jobId)
+            
+            ### If the machine is alreaday assigned than skip to the next one
             skipThisMachine = False;
             for mid in alreadyAssignedachines:
                 if machine["mid"] in mid:
@@ -364,23 +389,31 @@ def getCandidates(jobId):
             if skipThisMachine:
                 continue
                     
+            ### if the machine is busy then skip to the next one
             if machine['State'] == "BUSY":
                 continue
             
+            ### if the price that the machine is willing to do is above the price that the user is willing to pay, then skip to the next machine
             if price != "NULL":
                 if machine['Price'] > price:
                     continue
+                
+            ### if the machine has not enought space for the job execution, then skip this machine 
             if disc != "NULL":
                 if machine['Disc'] < disc:
                     continue
+                
+            ### if the machine RAM is lower than the request RAM then skip this machine    
             if RAM != "NULL":
                 if machine['RAM'] < RAM:
                     continue
                 
+            ### if the machine CPU is lower than the request CPU then skip this machine    
             if CPU != "NULL":
                 if machine['CPU'] < CPU:
                     continue
                 
+            ### if the volunteer credibility is lower than the request credibility then skip this machine    
             if credibility != "NULL":
                 if machine['credibility'] < credibility:
                     continue
@@ -392,12 +425,10 @@ def getCandidates(jobId):
             
             eTime = machine['mtbf'] - (time.time() - machine['initTime'])
             
-            #Skip all machines with estimated time < meanUptime requested by the client
+            #Skip all machines with estimated time < meanUptime requested by the client because the machine will likely fail during job execution
             if max(eTime, 0) < meanUptime:
                 continue
-            
                
-                
             job_candidates.append({"Name"  : machine["Name"],
                                    "mid" : machine["mid"],
                                   "ip"  : machine["ip"],
@@ -408,15 +439,11 @@ def getCandidates(jobId):
                                   "Price"  : machine["Price"]})
         return job_candidates
     
-
+####Remote Method to get volunteers for a certain job. 1st verify job ownership, 2nd find volunteers with the getCandidates function
 @clientAuth.require_login
 def getVolunteersForJob(client_ip, session_id, jobId):      
     
     valuemsg = checkClientOwnership(session_id, jobId)
-    if(valuemsg != "OK"):
-        return valuemsg
-    
-    valuemsg = clientAllocationCheck(session_id, jobId)
     if(valuemsg != "OK"):
         return valuemsg
             
@@ -426,6 +453,7 @@ server.register_function(getVolunteersForJob, 'getVolunteersForJob')
 
 
 #def job_result_validation(volunteer_ip, vol_session_id, jobId, ):
+#assign job to a volunteer
 def linkJobVolunteer(jobId, volunteer):
     #link the job to volunteer on database
     try:
@@ -437,7 +465,8 @@ def linkJobVolunteer(jobId, volunteer):
     
                 
                 
-
+#### the quiz is a math challenge (with a known solution)  mixed with the original source code
+#### The purpose of the quiz is to validate that the volunteer computed the source code
 def getQuiz(jobId):
                 
                 
@@ -485,7 +514,7 @@ def getQuiz(jobId):
     
     return quiz
 
-
+#### Remote Method: the client invoke this method to choose a volunteer for a previous submited job
 @clientAuth.require_login
 def chooseVolunteer(client_ip, session_id, jobId, volunteer):
     #validate jobID
@@ -494,27 +523,45 @@ def chooseVolunteer(client_ip, session_id, jobId, volunteer):
         return valuemsg
     
     linkJobVolunteer(jobId, volunteer)
+    #### Status transition Unbound -> Assigned
     try: 
         query = "UPDATE job SET Status = 'Assigned' WHERE jobId ="+ str(jobId)
         cur.execute(query)
         con.commit()
-    except: 
+    except:
         return "Error executing query: "+query
         con.rollback()
+    
+    #get RExpression for this jobId
+    RExpression = ""
+    query = "SELECT code FROM job WHERE jobId="+str(jobId)
+    
+    ###Retrieve the job source code
+    try:
+        cur.execute(query)
+        RExpression = cur.fetchone()[0]
+    
+    except:
+        return "Wrong sql query: "+ query
         
-    return getQuiz( jobId)
+    ###Add quiz R source code to the job source code
+    return RExpression + getQuiz( jobId)
     
 server.register_function(chooseVolunteer, 'chooseVolunteer')    
 
+####Used by the client to check if there is a still running session for his volunteer machine, if so then return the volunteer session so the volunteer machine can used it
 @clientAuth.require_login
 def checkVolunteer(client_ip, session_id, machineName):
     return volunteerAuth.load_session(machineName)
    
 server.register_function(checkVolunteer, 'checkVolunteer')
 
+
+####Called by volunteer.py and it's used to initialize a volunteer instance
+####This method return a valid volunteer session id for this session
 @clientAuth.require_login
 def startVolunteer(client_ip, session_id, port, machineName):
-    #Check if machineName is registered by the user that corresponds to session_id 
+    #Check if machineName is registered by the user that corresponds to session_id
     if session_id in clientAuth.sessions:
         Email = clientAuth.sessions[session_id]["email"]
     else: 
@@ -523,11 +570,11 @@ def startVolunteer(client_ip, session_id, port, machineName):
     try:
         cur.execute("""Select Name from UserMachines INNER JOIN Machines ON UserMachines.mid=Machines.mid WHERE UserMachines.Email='%s'""" % (Email))
         machineNames = cur.fetchall()
-        print (str(machineNames)) 
+        print (str(machineNames))
     except:
         return "Error getting the machines!"
     
-    ##Check if machine name is registered on database
+    ##Check if machine name is registered on database and is a valid machine Name for the client mail
     mName_isValid = False
     for mName in machineNames:
         if machineName in mName:
@@ -598,18 +645,24 @@ def startVolunteer(client_ip, session_id, port, machineName):
 
 server.register_function(startVolunteer, 'startVolunteer')
 
+
+####Remote Method invoked by the volunteer to check the job received from the client
 @volunteerAuth.require_login
 def validateJob(client_ip ,volunteer_session, jobId):
+    
+    #####TODO Validate the code hash
+    
     try:
         cur.execute("""SELECT mid FROM machine_job WHERE jobId=%s""",  jobId)
         machines = cur.fetchall()
-    except: 
+    except:
         print "ERROR on validatejob"
         
     mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
     for machine in machines:
         if mid == machine[0]:
             try: 
+                ####Status transition from Assigned to Computing
                 query = "UPDATE machine_job SET status = 'Computing' WHERE mid = "+ str(mid) + " AND jobId ="+ str(jobId)
                 cur.execute(query)
                 
@@ -621,6 +674,7 @@ def validateJob(client_ip ,volunteer_session, jobId):
                 con.rollback()
                 
                 
+            
             volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "BUSY"
             
             return True
@@ -648,7 +702,7 @@ def updateVolunteersComputingData(jobId, checked_jobs_machines):
             con.rollback()
             
         if machine["status"] == "Success":
-             #Store Rdata path
+            #Store Rdata path
     
             try:
                 query = "UPDATE job SET RDataPath = '"+ str(machine["filename"])+"' WHERE jobId = "+ str(jobId)
@@ -662,11 +716,19 @@ def updateVolunteersComputingData(jobId, checked_jobs_machines):
             
     
 
+####Volunteer callback upon job completion
+
+
+###Remote method called by volunteer upon job completion
+###This method validates the result with single execution validation, by quiz result and variables produced, and with replication comparing the execution result from a quorum of instances
+
 
 @volunteerAuth.require_login
 def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_input):
     mid = volunteerAuth.volunteer_sessions[volunteer_session]["mid"]
     machines = None
+    
+    #####Validate if this machine was assigned for the job
     try:
         cur.execute("""SELECT mid,status FROM machine_job WHERE jobId=%s""" % jobId)
         machines = cur.fetchall()
@@ -687,16 +749,17 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
     if not legitMachine:        
         return "The machine" + mid+ " was not assigned to job with id:" + str(jobId)
         
+    ####Get the number of machines assigned for the job
     quorum_machines = len(machines)       
     
     ###Get validated jobs for this job ID
-    
     
     machines_for_job[jobId][mid] = {"mid"  : mid,
                                 "status" : "Computing", 
                                 "vars" : None,
                                 "filename" : None}
-        
+      
+    ###Collect the jobs already checked  
     checked_jobs_machines = []
     for machineID in machines_for_job[jobId]:
         machine = machines_for_job[jobId][machineID]
@@ -733,10 +796,12 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
             majorityReport(checked_jobs_machines)
             
             
-        
+        ###Release the machine to receive more jobs
         volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
         return
     
+    
+    ## IF there is an output RDATA then start an Rserve session to validate the result
     
     #connect to R
     try:
@@ -752,15 +817,23 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
     handle.write(RData_output.data)
     handle.close()
 
+    ##Clean all variables from R environment
     conn.eval("rm(list=ls())")
+    
+    ###Run the file with the R code
     conn.voidEval('load("'+filename+'")')
+    
+    ### Extract value from the quiz variable
     quiz = conn.eval("quiz")
+    
     
     #Job validation
     #criteria1 - validate the quiz variable
     
     machines_for_job[jobId][mid]["filename"] = filename
     
+    
+    ### Get the expected output for the quiz
     try:
         query = """SELECT output FROM market_quiz INNER JOIN job_quiz ON market_quiz.input=job_quiz.input WHERE jobId="""+str(jobId)
         cur.execute(query)   
@@ -770,6 +843,7 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
         return "Error executing query: "+query
                 
     
+    ### compare the quiz with the expected quiz result
     if quiz == quiz_output:
         criteria1 = True
     else:
@@ -796,7 +870,7 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
     machines_for_job[jobId][mid]["vars"] = vars
     
     
-    
+    ###If both criterias are granted then the job was computed successfully
     if criteria1 and criteria2:
         print "The computed job with the id "+ str(jobId) + " was successfully validated!"
       
@@ -886,6 +960,16 @@ def checkJobResult(client_ip ,volunteer_session, jobId, RData_output, RData_inpu
     conn.close()
     if conn.isClosed:
         print "Rserve connection is closed"
+        
+    if quorum_machines == 1:
+        try:
+            query = "UPDATE job SET RDataPath = '"+ str(machine["filename"])+"' WHERE jobId = "+ str(jobId)
+            cur.execute(query)
+            con.commit()
+            
+        except:
+            print "Could not execute query: "+ query
+            con.rollback()
     
     #update volunteer state to FREE
     volunteerAuth.volunteer_sessions[volunteer_session]["State"] = "FREE"
@@ -932,7 +1016,7 @@ def loadJob(client_ip, session_id, jobId):
         cur.execute(query)
         path = cur.fetchone()[0]
         if not path:
-            return "This client is not the owner of this jobId "
+            return "Could not get the output file "
     except:
         return "Could not execute query: "+ query 
          
