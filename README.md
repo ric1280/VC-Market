@@ -1,11 +1,11 @@
 ## VC-Market 
 
 Requirements:
-  -python 2.7
-  -mysql server
-  -R 3.5.2
-  -rpython
-  -Rserve
+    -python 2.7
+    -mysql server
+    -R 3.5.2
+    -rpython
+    -Rserve
 
 1. Install python 2.7 https://www.python.org/download/releases/2.7/
 2. Install mysql (only server is required) https://cybersaf-my.sharepoint.com/:u:/g/personal/ricardo_maia_cybersafe_pt/EWXk38na2f1Ohqi5U0LDbVoBaahTGTliZV0OXM05wwheEw?e=uv9GTe
