@@ -1,4 +1,4 @@
-###### VC-Market ######
+## VC-Market 
 
 Requirements:
   -python 2.7
